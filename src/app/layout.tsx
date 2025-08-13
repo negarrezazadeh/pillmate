@@ -25,9 +25,11 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-        {children}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+        <p className="font-nunito text-4xl font-black text-indigo-500 border-b border-gray-300 px-10 py-5">
+          pillmate
+        </p>
+        <div className="mx-10 my-5">{children}</div>
       </body>
     </html>
   );
