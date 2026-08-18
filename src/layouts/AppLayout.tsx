@@ -50,7 +50,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       </aside>
 
       {/* Main content */}
-      <div className="flex-1 flex flex-col min-h-0">
+      <div className="flex-1 flex flex-col min-h-0 min-w-0">
         {/* Top bar - mobile */}
         <header className="md:hidden flex items-center justify-between px-4 py-3 bg-card border-b border-border">
           <Button variant="ghost" size="icon">
