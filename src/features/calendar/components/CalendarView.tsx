@@ -10,11 +10,14 @@ import {
   isSameDay,
   addMonths,
   subMonths,
-} from 'date-fns';
+} from 'date-fns-jalali';
 import { ChevronRight, ChevronLeft } from 'lucide-react';
 import { useMedicationContext } from '../../medications/context';
 import { getDayOfWeek } from '../../medications/hooks';
-import { cn } from '../../../lib/utils';
+import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { DayDetail } from './DayDetail';
 
 const WEEKDAY_LABELS = ['ش', 'ی', 'د', 'س', 'چ', 'پ', 'ج'];
@@ -24,7 +27,7 @@ export function CalendarView() {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const { medications } = useMedicationContext();
 
-  // Generate calendar days
+  // Generate calendar days (Jalali calendar, week starts Saturday)
   const calendarDays = useMemo(() => {
     const monthStart = startOfMonth(currentMonth);
     const monthEnd = endOfMonth(currentMonth);
@@ -59,104 +62,97 @@ export function CalendarView() {
   return (
     <div className="space-y-6">
       {/* Calendar */}
-      <div className="bg-white rounded-xl border border-gray-200 p-4 md:p-6">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <button
-            onClick={goToPrevMonth}
-            className="p-2 rounded-lg hover:bg-gray-100 text-gray-600 transition-colors"
-          >
-            <ChevronRight className="h-5 w-5" />
-          </button>
+      <Card>
+        <CardContent className="p-4 md:p-6">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-6">
+            <Button variant="ghost" size="icon" onClick={goToPrevMonth}>
+              <ChevronRight className="h-5 w-5" />
+            </Button>
 
-          <div className="flex items-center gap-3">
-            <h3 className="text-lg font-bold text-gray-900">
-              {format(currentMonth, 'MMMM yyyy')}
-            </h3>
-            <button
-              onClick={goToToday}
-              className="text-xs bg-blue-50 text-blue-600 px-2 py-1 rounded-md font-medium hover:bg-blue-100 transition-colors"
-            >
-              امروز
-            </button>
+            <div className="flex items-center gap-3">
+              <h3 className="text-lg font-bold">
+                {format(currentMonth, 'MMMM yyyy')}
+              </h3>
+              <Button variant="secondary" size="sm" onClick={goToToday}>
+                امروز
+              </Button>
+            </div>
+
+            <Button variant="ghost" size="icon" onClick={goToNextMonth}>
+              <ChevronLeft className="h-5 w-5" />
+            </Button>
           </div>
 
-          <button
-            onClick={goToNextMonth}
-            className="p-2 rounded-lg hover:bg-gray-100 text-gray-600 transition-colors"
-          >
-            <ChevronLeft className="h-5 w-5" />
-          </button>
-        </div>
-
-        {/* Weekday headers */}
-        <div className="grid grid-cols-7 mb-2">
-          {WEEKDAY_LABELS.map((label) => (
-            <div
-              key={label}
-              className="text-center text-xs font-medium text-gray-500 py-2"
-            >
-              {label}
-            </div>
-          ))}
-        </div>
-
-        {/* Days grid */}
-        <div className="grid grid-cols-7 gap-1">
-          {calendarDays.map((day) => {
-            const dateKey = format(day, 'yyyy-MM-dd');
-            const colors = dayMedicationColors.get(dateKey) ?? [];
-            const isCurrentMonth = isSameMonth(day, currentMonth);
-            const isToday = isSameDay(day, new Date());
-            const isSelected = selectedDate ? isSameDay(day, selectedDate) : false;
-
-            return (
-              <button
-                key={dateKey}
-                onClick={() => setSelectedDate(day)}
-                className={cn(
-                  'relative flex flex-col items-center py-2 rounded-lg transition-colors min-h-[52px]',
-                  !isCurrentMonth && 'opacity-30',
-                  isSelected
-                    ? 'bg-blue-50 ring-2 ring-blue-500'
-                    : 'hover:bg-gray-50',
-                  isToday && !isSelected && 'bg-blue-50/50',
-                )}
+          {/* Weekday headers */}
+          <div className="grid grid-cols-7 mb-2">
+            {WEEKDAY_LABELS.map((label, i) => (
+              <div
+                key={i}
+                className="text-center text-xs font-medium text-muted-foreground py-2"
               >
-                {/* Medication dots */}
-                {colors.length > 0 && (
-                  <div className="flex items-center gap-0.5 mb-0.5">
-                    {colors.slice(0, 4).map((color, i) => (
-                      <span
-                        key={i}
-                        className="w-1.5 h-1.5 rounded-full"
-                        style={{ backgroundColor: color }}
-                      />
-                    ))}
-                    {colors.length > 4 && (
-                      <span className="text-[8px] text-gray-400">+</span>
-                    )}
-                  </div>
-                )}
+                {label}
+              </div>
+            ))}
+          </div>
 
-                {/* Day number */}
-                <span
+          {/* Days grid */}
+          <div className="grid grid-cols-7 gap-1">
+            {calendarDays.map((day) => {
+              const dateKey = format(day, 'yyyy-MM-dd');
+              const colors = dayMedicationColors.get(dateKey) ?? [];
+              const isCurrentMonth = isSameMonth(day, currentMonth);
+              const isToday = isSameDay(day, new Date());
+              const isSelected = selectedDate ? isSameDay(day, selectedDate) : false;
+
+              return (
+                <button
+                  key={dateKey}
+                  onClick={() => setSelectedDate(day)}
                   className={cn(
-                    'text-sm',
-                    isToday
-                      ? 'font-bold text-blue-700'
-                      : isCurrentMonth
-                        ? 'text-gray-800'
-                        : 'text-gray-400',
+                    'relative flex flex-col items-center py-2 rounded-lg transition-colors min-h-[52px]',
+                    !isCurrentMonth && 'opacity-30',
+                    isSelected
+                      ? 'bg-primary/10 ring-2 ring-primary'
+                      : 'hover:bg-muted',
+                    isToday && !isSelected && 'bg-primary/5',
                   )}
                 >
-                  {format(day, 'd')}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
+                  {/* Medication dots */}
+                  {colors.length > 0 && (
+                    <div className="flex items-center gap-0.5 mb-0.5">
+                      {colors.slice(0, 4).map((color, i) => (
+                        <span
+                          key={i}
+                          className="w-1.5 h-1.5 rounded-full"
+                          style={{ backgroundColor: color }}
+                        />
+                      ))}
+                      {colors.length > 4 && (
+                        <span className="text-[8px] text-muted-foreground">+</span>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Day number (Persian digits via format) */}
+                  <span
+                    className={cn(
+                      'text-sm',
+                      isToday
+                        ? 'font-bold text-primary'
+                        : isCurrentMonth
+                          ? 'text-foreground'
+                          : 'text-muted-foreground',
+                    )}
+                  >
+                    {format(day, 'd')}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Day detail */}
       {selectedDate && <DayDetail date={selectedDate} />}
