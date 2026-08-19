@@ -9,8 +9,8 @@ function CalendarPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold text-gray-900">تقویم دارویی</h2>
-        <p className="text-sm text-gray-500 mt-1">مشاهده برنامه مصرف دارو در تقویم</p>
+        <h2 className="text-2xl font-bold">تقویم دارویی</h2>
+        <p className="text-sm mt-1 text-muted-foreground">مشاهده برنامه مصرف دارو در تقویم</p>
       </div>
       <CalendarView />
     </div>

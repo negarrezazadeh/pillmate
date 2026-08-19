@@ -10,8 +10,8 @@ function DashboardPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold text-gray-900">داشبورد</h2>
-        <p className="text-sm text-gray-500 mt-1">مدیریت و پیگیری داروهای شما</p>
+        <h2 className="text-2xl font-bold">داشبورد</h2>
+        <p className="text-sm text-muted-foreground mt-1">مدیریت و پیگیری داروهای شما</p>
       </div>
 
       {/* Today's medications */}

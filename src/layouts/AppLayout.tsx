@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { NotificationPermission } from "../features/notifications/components/NotificationPermission";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import logo from "@/assets/logo.png";
 
 const navItems = [
@@ -44,8 +45,11 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             );
           })}
         </nav>
-        <div className="px-3 pb-4">
+        <div className="px-3 pb-4 space-y-2">
           <NotificationPermission />
+          <div className="flex justify-center">
+            <ThemeToggle />
+          </div>
         </div>
       </aside>
 
@@ -53,9 +57,12 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       <div className="flex-1 flex flex-col min-h-0 min-w-0">
         {/* Top bar - mobile */}
         <header className="md:hidden flex items-center justify-between px-4 py-3 bg-card border-b border-border">
-          <Button variant="ghost" size="icon">
-            <Bell className="h-5 w-5" />
-          </Button>
+          <div className="flex items-center gap-1">
+            <ThemeToggle />
+            <Button variant="ghost" size="icon">
+              <Bell className="h-5 w-5" />
+            </Button>
+          </div>
           <div className="flex items-center gap-2">
             <img src={logo} className="h-8" />
           </div>

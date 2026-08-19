@@ -60,7 +60,7 @@ export function MedicationTable() {
         <Card size="sm">
           <CardContent>
             <p className="text-sm text-muted-foreground">داروهای فعال</p>
-            <p className="text-2xl font-bold text-green-600">
+            <p className="text-2xl font-bold text-green-600 dark:text-green-400">
               {stats.activeMedications}
             </p>
           </CardContent>
@@ -68,7 +68,7 @@ export function MedicationTable() {
         <Card size="sm">
           <CardContent>
             <p className="text-sm text-muted-foreground">مصرف‌شده امروز</p>
-            <p className="text-2xl font-bold text-blue-600">
+            <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
               {stats.takenToday}
             </p>
           </CardContent>
@@ -76,7 +76,7 @@ export function MedicationTable() {
         <Card size="sm">
           <CardContent>
             <p className="text-sm text-muted-foreground">باقی‌مانده امروز</p>
-            <p className="text-2xl font-bold text-orange-600">
+            <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">
               {stats.remainingToday}
             </p>
           </CardContent>
@@ -89,7 +89,7 @@ export function MedicationTable() {
           <CardTitle>لیست داروها</CardTitle>
         </CardHeader>
         <CardContent>
-            <Table className="min-w-[700px]">
+            <Table className="min-w-175">
               <TableHeader>
                 <TableRow>
                   <TableHead className="text-right">دارو</TableHead>
@@ -128,7 +128,7 @@ export function MedicationTable() {
                         {med.isActive ? (
                           <Badge
                             variant="secondary"
-                            className="bg-green-50 text-green-700 gap-1"
+                            className="bg-green-50 text-green-700 dark:bg-green-900/50 dark:text-green-300 gap-1"
                           >
                             <CheckCircle className="h-3 w-3" />
                             فعال

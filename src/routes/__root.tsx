@@ -4,6 +4,7 @@ import { MedicationProvider } from "../features/medications/context";
 import { AppLayout } from "../layouts/AppLayout";
 import { DirectionProvider } from "@base-ui/react/direction-provider";
 import { NotificationInitializer } from "@/features/notifications/components/NotificationInitializer";
+import { ThemeProvider } from "@/lib/theme";
 
 import "../index.css";
 
@@ -17,13 +18,15 @@ export const Route = createRootRouteWithContext<RouterContext>()({
 
 function RootComponent() {
   return (
-    <DirectionProvider direction="rtl">
-      <MedicationProvider>
-        <NotificationInitializer />
-        <AppLayout>
-          <Outlet />
-        </AppLayout>
-      </MedicationProvider>
-    </DirectionProvider>
+    <ThemeProvider>
+      <DirectionProvider direction="rtl">
+        <MedicationProvider>
+          <NotificationInitializer />
+          <AppLayout>
+            <Outlet />
+          </AppLayout>
+        </MedicationProvider>
+      </DirectionProvider>
+    </ThemeProvider>
   );
 }

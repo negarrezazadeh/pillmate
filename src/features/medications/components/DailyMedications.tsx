@@ -52,9 +52,9 @@ export function DailyMedications() {
                 className={cn(
                   'flex items-center justify-between p-3 rounded-lg border transition-colors',
                   isTaken
-                    ? 'bg-green-50 border-green-200'
+                    ? 'bg-green-50 border-green-200 dark:bg-green-950/30 dark:border-green-800'
                     : isPast
-                      ? 'bg-orange-50 border-orange-200'
+                      ? 'bg-orange-50 border-orange-200 dark:bg-orange-950/30 dark:border-orange-800'
                       : 'bg-muted/50 border-border',
                 )}
               >
@@ -64,7 +64,7 @@ export function DailyMedications() {
                     style={{ backgroundColor: med.color }}
                   />
                   <div>
-                    <p className="font-medium text-sm">{med.name}</p>
+                    <p className="font-medium text-sm text-foreground">{med.name}</p>
                     <p className="text-xs text-muted-foreground">{med.dosage}</p>
                   </div>
                 </div>
@@ -74,7 +74,7 @@ export function DailyMedications() {
                     <span>{time}</span>
                   </div>
                   {isTaken ? (
-                    <Badge variant="secondary" className="bg-green-100 text-green-700 gap-1">
+                    <Badge variant="secondary" className="bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300 gap-1">
                       <Check className="h-3 w-3" />
                       مصرف شد
                     </Badge>

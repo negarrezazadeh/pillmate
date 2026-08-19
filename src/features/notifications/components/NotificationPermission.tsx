@@ -21,7 +21,7 @@ export function NotificationPermission() {
 
   if (permission === 'granted') {
     return (
-      <Badge variant="secondary" className="w-full justify-center gap-1.5 py-1.5 bg-green-50 text-green-700">
+      <Badge variant="secondary" className="w-full justify-center gap-1.5 py-1.5 bg-green-50 text-green-700 dark:bg-green-900/50 dark:text-green-300">
         <CheckCircle className="h-3.5 w-3.5" />
         یادآور فعال است
       </Badge>
