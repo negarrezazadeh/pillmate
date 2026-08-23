@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { NotificationPermission } from "../features/notifications/components/NotificationPermission";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import logo from "@/assets/logo.png";
+import { Logo } from "@/components/Logo";
 
 const navItems = [
   { to: "/", label: "داشبورد", icon: LayoutDashboard },
@@ -21,8 +21,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     <div className="flex h-screen bg-background" dir="rtl">
       {/* Sidebar - desktop */}
       <aside className="hidden md:flex md:w-64 md:flex-col bg-card border-l border-border">
-        <div className="flex items-center justify-center gap-2 px-6 py-5">
-          <img src={logo} className="h-8" />
+        <div className="flex items-center justify-center px-6 py-5">
+          <Logo />
         </div>
         <Separator />
         <nav className="flex-1 px-3 py-4 space-y-1">
@@ -63,9 +63,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               <Bell className="h-5 w-5" />
             </Button>
           </div>
-          <div className="flex items-center gap-2">
-            <img src={logo} className="h-8" />
-          </div>
+          <Logo />
         </header>
 
         {/* Page content */}

@@ -2,14 +2,14 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 @import "@fontsource-variable/geist";
+@import "@fontsource-variable/sora";
 
 /* <ShadCN> */
 @custom-variant dark (&:is(.dark *));
 
 @font-face {
   font-family: "Yekan";
-  src: url("./assets/fonts/YekanBakhFaNum-Medium.woff2")
-    format("woff2");
+  src: url("./assets/fonts/YekanBakhFaNum-Medium.woff2") format("woff2");
   font-weight: 600;
   font-style: normal;
   font-display: swap;
@@ -17,8 +17,7 @@
 
 @font-face {
   font-family: "Yekan";
-  src: url("./assets/fonts/YekanBakhFaNum-Regular.woff2")
-    format("woff2");
+  src: url("./assets/fonts/YekanBakhFaNum-Regular.woff2") format("woff2");
   font-weight: 700;
   font-style: normal;
   font-display: swap;
@@ -31,7 +30,7 @@
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.55 0.12 250);
+  --primary: #3275b4;
   --primary-foreground: oklch(0.985 0 0);
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
@@ -189,7 +188,8 @@
   --font-sans: "Geist Variable", sans-serif;
   --font-mono: var(--font-mono);
   --font-serif: var(--font-serif);
-   --font-vazir: "Yekan", sans-serif;
+  --font-sora: "Sora Variable", sans-serif;
+  --font-yekan: "Yekan", sans-serif;
 
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
@@ -211,7 +211,7 @@
   --tracking-wide: calc(var(--tracking-normal) + 0.025em);
   --tracking-wider: calc(var(--tracking-normal) + 0.05em);
   --tracking-widest: calc(var(--tracking-normal) + 0.1em);
-  --font-heading: var(--font-sans);
+  --font-heading: var(--font-yekan);
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
