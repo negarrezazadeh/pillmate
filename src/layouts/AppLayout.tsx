@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { LayoutDashboard, Pill, Calendar, Bell } from "lucide-react";
+import { LayoutDashboard, Pill, Calendar, Bell, History } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -11,6 +11,7 @@ const navItems = [
   { to: "/", label: "داشبورد", icon: LayoutDashboard },
   { to: "/medications", label: "داروها", icon: Pill },
   { to: "/calendar", label: "تقویم", icon: Calendar },
+  { to: "/history", label: "تاریخچه", icon: History },
 ] as const;
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
