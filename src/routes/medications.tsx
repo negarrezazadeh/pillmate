@@ -4,9 +4,20 @@ import { useMedicationContext } from '../features/medications/context';
 import { MedicationCard } from '../features/medications/components/MedicationCard';
 import { MedicationForm } from '../features/medications/components/MedicationForm';
 import type { Medication } from '../features/medications/types';
-import { Plus } from 'lucide-react';
+import { Plus, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogMedia,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 export const Route = createFileRoute('/medications')({
   component: MedicationsPage,
@@ -17,6 +28,7 @@ function MedicationsPage() {
     useMedicationContext();
   const [showForm, setShowForm] = useState(false);
   const [editingMedication, setEditingMedication] = useState<Medication | null>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const handleSave = (medication: Medication) => {
     if (editingMedication) {
@@ -33,9 +45,14 @@ function MedicationsPage() {
     setShowForm(true);
   };
 
-  const handleDelete = (id: string) => {
-    if (confirm('آیا از حذف این دارو مطمئن هستید؟')) {
-      deleteMedication(id);
+  const handleDeleteRequest = (id: string) => {
+    setDeleteId(id);
+  };
+
+  const handleDeleteConfirm = () => {
+    if (deleteId) {
+      deleteMedication(deleteId);
+      setDeleteId(null);
     }
   };
 
@@ -83,7 +100,7 @@ function MedicationsPage() {
               key={med.id}
               medication={med}
               onEdit={handleEdit}
-              onDelete={handleDelete}
+              onDelete={handleDeleteRequest}
             />
           ))}
         </div>
@@ -96,6 +113,27 @@ function MedicationsPage() {
         onSave={handleSave}
         onCancel={handleCancel}
       />
+
+      {/* Delete confirmation dialog */}
+      <AlertDialog open={deleteId !== null} onOpenChange={(open) => { if (!open) setDeleteId(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogMedia className="bg-destructive/10">
+              <Trash2 className="h-5 w-5 text-destructive" />
+            </AlertDialogMedia>
+            <AlertDialogTitle>حذف دارو</AlertDialogTitle>
+            <AlertDialogDescription>
+              آیا از حذف این دارو مطمئن هستید؟ این عمل قابل بازگشت نیست.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>انصراف</AlertDialogCancel>
+            <AlertDialogAction variant="destructive" onClick={handleDeleteConfirm}>
+              حذف
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

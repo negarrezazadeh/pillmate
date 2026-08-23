@@ -36,7 +36,7 @@ export function MedicationCard({ medication, onEdit, onDelete }: MedicationCardP
           <div className="flex items-center gap-1">
             <Button
               variant="ghost"
-              size="icon-xs"
+              size="icon-sm"
               onClick={() => onEdit(medication)}
               aria-label="ویرایش"
             >
@@ -44,7 +44,7 @@ export function MedicationCard({ medication, onEdit, onDelete }: MedicationCardP
             </Button>
             <Button
               variant="ghost"
-              size="icon-xs"
+              size="icon-sm"
               onClick={() => onDelete(medication.id)}
               aria-label="حذف"
               className="text-destructive hover:text-destructive"
