@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as CalendarRouteImport } from './routes/calendar'
+import { Route as HistoryRouteImport } from './routes/history'
 import { Route as MedicationsRouteImport } from './routes/medications'
 
 const IndexRoute = IndexRouteImport.update({
@@ -23,6 +24,11 @@ const CalendarRoute = CalendarRouteImport.update({
   path: '/calendar',
   getParentRoute: () => rootRouteImport,
 } as any)
+const HistoryRoute = HistoryRouteImport.update({
+  id: '/history',
+  path: '/history',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const MedicationsRoute = MedicationsRouteImport.update({
   id: '/medications',
   path: '/medications',
@@ -32,30 +38,34 @@ const MedicationsRoute = MedicationsRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/calendar': typeof CalendarRoute
+  '/history': typeof HistoryRoute
   '/medications': typeof MedicationsRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/calendar': typeof CalendarRoute
+  '/history': typeof HistoryRoute
   '/medications': typeof MedicationsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/calendar': typeof CalendarRoute
+  '/history': typeof HistoryRoute
   '/medications': typeof MedicationsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/calendar' | '/medications'
+  fullPaths: '/' | '/calendar' | '/history' | '/medications'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/calendar' | '/medications'
-  id: '__root__' | '/' | '/calendar' | '/medications'
+  to: '/' | '/calendar' | '/history' | '/medications'
+  id: '__root__' | '/' | '/calendar' | '/history' | '/medications'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   CalendarRoute: typeof CalendarRoute
+  HistoryRoute: typeof HistoryRoute
   MedicationsRoute: typeof MedicationsRoute
 }
 
@@ -75,6 +85,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CalendarRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/history': {
+      id: '/history'
+      path: '/history'
+      fullPath: '/history'
+      preLoaderRoute: typeof HistoryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/medications': {
       id: '/medications'
       path: '/medications'
@@ -88,6 +105,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   CalendarRoute: CalendarRoute,
+  HistoryRoute: HistoryRoute,
   MedicationsRoute: MedicationsRoute,
 }
 export const routeTree = rootRouteImport
