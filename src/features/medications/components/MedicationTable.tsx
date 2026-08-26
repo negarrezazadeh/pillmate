@@ -1,5 +1,8 @@
+import { format } from "date-fns-jalali";
 import { useMedicationContext } from "../context";
 import { useDashboardStats } from "../hooks";
+import { getMedicationStartKey } from "../schedule";
+import { fromDateKey } from "@/lib/date";
 import { DAYS_OF_WEEK } from "../types";
 import type { Medication } from "../types";
 import { CheckCircle, Clock, XCircle } from "lucide-react";
@@ -97,6 +100,7 @@ export function MedicationTable() {
                   <TableHead className="text-right">وضعیت</TableHead>
                   <TableHead className="text-right">زمان مصرف</TableHead>
                   <TableHead className="text-right">روزها</TableHead>
+                  <TableHead className="text-right">تاریخ شروع</TableHead>
                   <TableHead className="text-right">آخرین مصرف</TableHead>
                 </TableRow>
               </TableHeader>
@@ -147,6 +151,9 @@ export function MedicationTable() {
                         </div>
                       </TableCell>
                       <TableCell>{getDaysLabel(med)}</TableCell>
+                      <TableCell className="whitespace-nowrap">
+                        {format(fromDateKey(getMedicationStartKey(med)), 'd MMMM yyyy')}
+                      </TableCell>
                       <TableCell>{getLastTaken(med.id, intakeLogs)}</TableCell>
                     </TableRow>
                   ))

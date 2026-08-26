@@ -8,6 +8,7 @@ import {
   fromDateKey,
   getDosageTrend,
 } from '../medications/dosage';
+import { toDateKey } from '@/lib/date';
 import {
   sendNotification,
   playAlarmSound,
@@ -25,7 +26,7 @@ export function useNotificationChecker() {
   const checkMedications = useCallback(() => {
     const now = new Date();
     const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
-    const todayDateStr = now.toISOString().split('T')[0];
+    const todayDateStr = toDateKey(now);
     const today = getCurrentDay();
 
     // Avoid checking same minute twice

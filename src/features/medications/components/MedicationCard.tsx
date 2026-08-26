@@ -16,8 +16,10 @@ import {
   ArrowUp,
   ArrowDown,
   CalendarClock,
+  CalendarPlus,
   BellOff,
 } from 'lucide-react';
+import { getMedicationStartKey } from '../schedule';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardAction } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -128,6 +130,14 @@ export function MedicationCard({ medication, onEdit, onDelete }: MedicationCardP
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Calendar className="h-4 w-4" />
           <span>{daysLabel}</span>
+        </div>
+
+        {/* Tracking start */}
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <CalendarPlus className="h-4 w-4" />
+          <span>
+            از {format(fromDateKey(getMedicationStartKey(medication)), 'd MMMM yyyy')}
+          </span>
         </div>
 
         {/* Badges */}

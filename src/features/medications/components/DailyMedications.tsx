@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { toDateKey } from '@/lib/date';
 
 export function DailyMedications() {
   const { updateIntakeLog } = useMedicationContext();
@@ -44,7 +45,7 @@ export function DailyMedications() {
               (l) => l.scheduledTime.includes(`T${time}:`),
             );
             const isTaken = log?.status === 'taken';
-            const isPast = new Date() > new Date(`${new Date().toISOString().split('T')[0]}T${time}:00`);
+            const isPast = new Date() > new Date(`${toDateKey(new Date())}T${time}:00`);
 
             return (
               <div

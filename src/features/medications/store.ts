@@ -150,7 +150,7 @@ export function updateIntakeLog(updated: IntakeLog): IntakeLog[] {
 }
 
 export function getLogsForDate(date: Date): IntakeLog[] {
-  const dateStr = date.toISOString().split('T')[0];
+  const dateStr = toDateKey(date);
   return getIntakeLogs().filter(
     (log) => log.scheduledTime.split('T')[0] === dateStr,
   );

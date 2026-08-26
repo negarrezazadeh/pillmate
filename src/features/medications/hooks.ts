@@ -1,50 +1,24 @@
 import { useMemo } from 'react';
 import { useMedicationContext } from './context';
-import type { DayOfWeek, IntakeLog, MedicationWithLogs } from './types';
+import type { IntakeLog, MedicationWithLogs } from './types';
+import { isMedicationScheduledOn } from './schedule';
+import { toDateKey } from '@/lib/date';
 
-/**
- * Get the current day of week as DayOfWeek type
- */
-export function getCurrentDay(): DayOfWeek {
-  const dayMap: DayOfWeek[] = [
-    'sunday',
-    'monday',
-    'tuesday',
-    'wednesday',
-    'thursday',
-    'friday',
-    'saturday',
-  ];
-  return dayMap[new Date().getDay()];
-}
-
-/**
- * Get day of week for a specific date
- */
-export function getDayOfWeek(date: Date): DayOfWeek {
-  const dayMap: DayOfWeek[] = [
-    'sunday',
-    'monday',
-    'tuesday',
-    'wednesday',
-    'thursday',
-    'friday',
-    'saturday',
-  ];
-  return dayMap[date.getDay()];
-}
+// Scheduling primitives live in ./schedule; re-exported so existing callers
+// keep importing them from here.
+export { getCurrentDay, getDayOfWeek } from './schedule';
 
 /**
  * Hook to get today's medications with their intake logs
  */
 export function useTodayMedications(): MedicationWithLogs[] {
   const { medications, intakeLogs } = useMedicationContext();
-  const today = getCurrentDay();
-  const todayDateStr = new Date().toISOString().split('T')[0];
+  const todayDateStr = toDateKey(new Date());
 
   return useMemo(() => {
+    const today = new Date();
     return medications
-      .filter((med) => med.isActive && med.days.includes(today))
+      .filter((med) => isMedicationScheduledOn(med, today))
       .map((med) => ({
         ...med,
         todayLogs: intakeLogs.filter(
@@ -53,7 +27,7 @@ export function useTodayMedications(): MedicationWithLogs[] {
             log.scheduledTime.split('T')[0] === todayDateStr,
         ),
       }));
-  }, [medications, intakeLogs, today, todayDateStr]);
+  }, [medications, intakeLogs, todayDateStr]);
 }
 
 /**
@@ -61,12 +35,12 @@ export function useTodayMedications(): MedicationWithLogs[] {
  */
 export function useMedicationsForDate(date: Date) {
   const { medications, intakeLogs } = useMedicationContext();
-  const dayOfWeek = getDayOfWeek(date);
-  const dateStr = date.toISOString().split('T')[0];
+  const dateStr = toDateKey(date);
 
   return useMemo(() => {
+    const target = new Date(dateStr + 'T00:00:00');
     return medications
-      .filter((med) => med.isActive && med.days.includes(dayOfWeek))
+      .filter((med) => isMedicationScheduledOn(med, target))
       .map((med) => ({
         ...med,
         todayLogs: intakeLogs.filter(
@@ -75,7 +49,7 @@ export function useMedicationsForDate(date: Date) {
             log.scheduledTime.split('T')[0] === dateStr,
         ),
       }));
-  }, [medications, intakeLogs, dayOfWeek, dateStr]);
+  }, [medications, intakeLogs, dateStr]);
 }
 
 /**
@@ -83,13 +57,13 @@ export function useMedicationsForDate(date: Date) {
  */
 export function useDashboardStats() {
   const { medications, intakeLogs } = useMedicationContext();
-  const todayDateStr = new Date().toISOString().split('T')[0];
-  const today = getCurrentDay();
+  const todayDateStr = toDateKey(new Date());
 
   return useMemo(() => {
+    const today = new Date();
     const activeMedications = medications.filter((m) => m.isActive);
     const todayMedications = activeMedications.filter((m) =>
-      m.days.includes(today),
+      isMedicationScheduledOn(m, today),
     );
 
     const todayLogs = intakeLogs.filter(
@@ -109,7 +83,7 @@ export function useDashboardStats() {
       totalTodayDoses,
       remainingToday: totalTodayDoses - takenToday,
     };
-  }, [medications, intakeLogs, todayDateStr, today]);
+  }, [medications, intakeLogs, todayDateStr]);
 }
 
 /**
@@ -167,12 +141,12 @@ export function useIntakeHistory(daysBack = 30) {
  */
 export function useGenerateTodayLogs() {
   const { medications, intakeLogs, addIntakeLog } = useMedicationContext();
-  const today = getCurrentDay();
-  const todayDateStr = new Date().toISOString().split('T')[0];
+  const todayDateStr = toDateKey(new Date());
 
   return useMemo(() => {
-    const todayMedications = medications.filter(
-      (med) => med.isActive && med.days.includes(today),
+    const today = new Date();
+    const todayMedications = medications.filter((med) =>
+      isMedicationScheduledOn(med, today),
     );
 
     const missingLogs: IntakeLog[] = [];
@@ -205,5 +179,5 @@ export function useGenerateTodayLogs() {
         }
       },
     };
-  }, [medications, intakeLogs, today, todayDateStr, addIntakeLog]);
+  }, [medications, intakeLogs, todayDateStr, addIntakeLog]);
 }

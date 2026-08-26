@@ -13,11 +13,11 @@ import {
 } from 'date-fns-jalali';
 import { ChevronRight, ChevronLeft } from 'lucide-react';
 import { useMedicationContext } from '../../medications/context';
-import { getDayOfWeek } from '../../medications/hooks';
+import { isMedicationScheduledOn } from '../../medications/schedule';
+import { toDateKey } from '@/lib/date';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { DayDetail } from './DayDetail';
 
 const WEEKDAY_LABELS = ['ش', 'ی', 'د', 'س', 'چ', 'پ', 'ج'];
@@ -37,16 +37,16 @@ export function CalendarView() {
     return eachDayOfInterval({ start: calStart, end: calEnd });
   }, [currentMonth]);
 
-  // Get medication colors for each day
+  // Medication colors per day. Keyed by Gregorian date key so it lines up with
+  // how schedules and logs are stored.
   const dayMedicationColors = useMemo(() => {
     const map = new Map<string, string[]>();
     for (const day of calendarDays) {
-      const dayOfWeek = getDayOfWeek(day);
       const colors = medications
-        .filter((med) => med.isActive && med.days.includes(dayOfWeek))
+        .filter((med) => isMedicationScheduledOn(med, day))
         .map((med) => med.color);
       if (colors.length > 0) {
-        map.set(format(day, 'yyyy-MM-dd'), colors);
+        map.set(toDateKey(day), colors);
       }
     }
     return map;
@@ -99,7 +99,7 @@ export function CalendarView() {
           {/* Days grid */}
           <div className="grid grid-cols-7 gap-1">
             {calendarDays.map((day) => {
-              const dateKey = format(day, 'yyyy-MM-dd');
+              const dateKey = toDateKey(day);
               const colors = dayMedicationColors.get(dateKey) ?? [];
               const isCurrentMonth = isSameMonth(day, currentMonth);
               const isToday = isSameDay(day, new Date());

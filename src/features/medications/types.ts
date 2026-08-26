@@ -43,6 +43,15 @@ export interface Medication {
   notes: string;
   isActive: boolean;
   createdAt: string; // ISO string
+  /**
+   * Date key (YYYY-MM-DD) from which this medication is tracked. Doses are not
+   * scheduled before this day, so adding a medication today does not
+   * retroactively populate past weeks and months.
+   *
+   * Defaults to the day the record was created. Optional for backward
+   * compatibility - see getMedicationStartKey().
+   */
+  startDate?: string;
   /** Optional planned dosage change. Null/undefined when none is scheduled. */
   dosageChange?: DosageChange | null;
   /** Previous dosages, appended whenever a scheduled change is applied */

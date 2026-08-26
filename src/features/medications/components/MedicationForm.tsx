@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { DayOfWeek, Medication } from '../types';
 import { COLOR_PALETTE, DAYS_OF_WEEK } from '../types';
 import { DOSAGE_TREND_LABEL, getDosageTrend, toDateKey } from '../dosage';
+import { getMedicationStartKey } from '../schedule';
 import { ArrowDown, ArrowUp, Plus, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { JalaliDatePicker } from '@/components/JalaliDatePicker';
@@ -33,6 +34,11 @@ export function MedicationForm({ medication, open, onSave, onCancel }: Medicatio
   const [times, setTimes] = useState<string[]>(medication?.times ?? ['08:00']);
   const [notes, setNotes] = useState(medication?.notes ?? '');
   const [isActive, setIsActive] = useState(medication?.isActive ?? true);
+  // Day tracking starts. New medications default to today so they never
+  // backfill past weeks; editing an old record keeps its original start day.
+  const [startDate, setStartDate] = useState(
+    medication ? getMedicationStartKey(medication) : toDateKey(new Date()),
+  );
 
   // Planned dosage change. An already-applied change is treated as "no pending
   // change", so editing a medication doesn't resurrect an old one.
@@ -95,6 +101,7 @@ export function MedicationForm({ medication, open, onSave, onCancel }: Medicatio
       notes: notes.trim(),
       isActive,
       createdAt: medication?.createdAt ?? new Date().toISOString(),
+      startDate: startDate || toDateKey(new Date()),
       dosageChange: wantsChange
         ? {
             effectiveDate: changeDate,
@@ -294,6 +301,20 @@ export function MedicationForm({ medication, open, onSave, onCancel }: Medicatio
                 </Button>
               ))}
             </div>
+          </div>
+
+          {/* Start date */}
+          <div className="space-y-2">
+            <Label htmlFor="med-start-date">تاریخ شروع مصرف</Label>
+            <JalaliDatePicker
+              id="med-start-date"
+              value={startDate}
+              onChange={setStartDate}
+            />
+            <p className="text-xs text-muted-foreground">
+              پیگیری مصرف از این روز شروع می‌شود و دارو در روزهای قبل از آن
+              نمایش داده نمی‌شود.
+            </p>
           </div>
 
           {/* Times */}
