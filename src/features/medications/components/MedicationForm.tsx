@@ -6,6 +6,7 @@ import { getMedicationStartKey } from '../schedule';
 import { ArrowDown, ArrowUp, Plus, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { JalaliDatePicker } from '@/components/JalaliDatePicker';
+import { ColorPicker } from '@/components/ColorPicker';
 import {
   Dialog,
   DialogContent,
@@ -252,24 +253,8 @@ export function MedicationForm({ medication, open, onSave, onCancel }: Medicatio
 
           {/* Color */}
           <div className="space-y-2">
-            <Label>رنگ دارو</Label>
-            <div className="flex flex-wrap gap-2">
-              {COLOR_PALETTE.map((c) => (
-                <button
-                  key={c}
-                  type="button"
-                  onClick={() => setColor(c)}
-                  className={cn(
-                    'w-8 h-8 rounded-full border-2 transition-transform',
-                    color === c
-                      ? 'border-foreground scale-110'
-                      : 'border-transparent hover:scale-105',
-                  )}
-                  style={{ backgroundColor: c }}
-                  aria-label={`انتخاب رنگ ${c}`}
-                />
-              ))}
-            </div>
+            <Label htmlFor="med-color">رنگ دارو</Label>
+            <ColorPicker id="med-color" value={color} onChange={setColor} />
           </div>
 
           {/* Times per week */}

@@ -22,6 +22,9 @@ import { DayDetail } from './DayDetail';
 
 const WEEKDAY_LABELS = ['ش', 'ی', 'د', 'س', 'چ', 'پ', 'ج'];
 
+/** Dots shown per day cell before collapsing the rest into a +N marker */
+const MAX_DAY_DOTS = 2;
+
 export function CalendarView() {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
@@ -118,21 +121,25 @@ export function CalendarView() {
                     isToday && !isSelected && 'bg-primary/5',
                   )}
                 >
-                  {/* Medication dots */}
-                  {colors.length > 0 && (
-                    <div className="flex items-center gap-0.5 mb-0.5">
-                      {colors.slice(0, 4).map((color, i) => (
-                        <span
-                          key={i}
-                          className="w-1.5 h-1.5 rounded-full"
-                          style={{ backgroundColor: color }}
-                        />
-                      ))}
-                      {colors.length > 4 && (
-                        <span className="text-[8px] text-muted-foreground">+</span>
-                      )}
-                    </div>
-                  )}
+                  {/* Medication dots, capped at MAX_DAY_DOTS with the rest
+                      collapsed into a +N marker, because more dots than that
+                      do not fit a day cell on a phone.
+                      The row is always rendered so day numbers stay aligned
+                      across cells with and without medications. */}
+                  <div className="flex items-center justify-center gap-0.5 mb-0.5 h-2">
+                    {colors.slice(0, MAX_DAY_DOTS).map((color, i) => (
+                      <span
+                        key={i}
+                        className="w-1.5 h-1.5 rounded-full shrink-0"
+                        style={{ backgroundColor: color }}
+                      />
+                    ))}
+                    {colors.length > MAX_DAY_DOTS && (
+                      <span className="text-[9px] leading-none text-muted-foreground font-medium">
+                        +{colors.length - MAX_DAY_DOTS}
+                      </span>
+                    )}
+                  </div>
 
                   {/* Day number (Persian digits via format) */}
                   <span
