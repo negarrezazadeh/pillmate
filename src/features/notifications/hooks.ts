@@ -1,6 +1,13 @@
 import { useEffect, useRef, useCallback } from 'react';
+import { format } from 'date-fns-jalali';
 import { useMedicationContext } from '../medications/context';
 import { getCurrentDay } from '../medications/hooks';
+import {
+  DOSAGE_TREND_LABEL,
+  formatDaysUntil,
+  fromDateKey,
+  getDosageTrend,
+} from '../medications/dosage';
 import {
   sendNotification,
   playAlarmSound,
@@ -104,4 +111,53 @@ export function useNotificationChecker() {
       }
     };
   }, [checkMedications]);
+}
+
+/**
+ * Hook that applies due dosage changes and notifies the user ahead of time:
+ * two days before, one day before, and on the day the new dosage starts.
+ *
+ * Runs on mount and then hourly, so the reminder lands even if the app stays
+ * open across midnight.
+ */
+export function useDosageChangeChecker() {
+  const { processDosageChanges } = useMedicationContext();
+
+  const checkDosageChanges = useCallback(() => {
+    const alerts = processDosageChanges();
+    if (alerts.length === 0) return;
+
+    for (const alert of alerts) {
+      const trend = getDosageTrend(alert.fromDosage, alert.toDosage);
+      const when = formatDaysUntil(alert.daysUntil);
+      const jalaliDate = format(fromDateKey(alert.effectiveDate), 'd MMMM yyyy');
+
+      const title =
+        alert.daysUntil === 0
+          ? `دوز ${alert.medicationName} از امروز تغییر کرد`
+          : `${DOSAGE_TREND_LABEL[trend]} ${alert.medicationName} ${when}`;
+
+      const body =
+        alert.daysUntil === 0
+          ? `دوز جدید: ${alert.toDosage} (قبلاً ${alert.fromDosage})`
+          : `${jalaliDate} دوز از ${alert.fromDosage} به ${alert.toDosage} تغییر می‌کند.`;
+
+      if (getNotificationPermission() === 'granted') {
+        sendNotification(title, {
+          body,
+          tag: `dosage-change-${alert.medicationId}-${alert.daysUntil}`,
+          requireInteraction: alert.daysUntil === 0,
+        });
+      }
+    }
+  }, [processDosageChanges]);
+
+  useEffect(() => {
+    checkDosageChanges();
+
+    // Hourly is enough for a day-granularity reminder and cheap to run
+    const interval = setInterval(checkDosageChanges, 60 * 60 * 1000);
+
+    return () => clearInterval(interval);
+  }, [checkDosageChanges]);
 }

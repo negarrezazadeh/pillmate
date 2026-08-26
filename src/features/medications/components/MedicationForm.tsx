@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import type { DayOfWeek, Medication } from '../types';
 import { COLOR_PALETTE, DAYS_OF_WEEK } from '../types';
-import { Plus, X } from 'lucide-react';
+import { DOSAGE_TREND_LABEL, getDosageTrend, toDateKey } from '../dosage';
+import { ArrowDown, ArrowUp, Plus, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { JalaliDatePicker } from '@/components/JalaliDatePicker';
 import {
   Dialog,
   DialogContent,
@@ -32,6 +34,26 @@ export function MedicationForm({ medication, open, onSave, onCancel }: Medicatio
   const [notes, setNotes] = useState(medication?.notes ?? '');
   const [isActive, setIsActive] = useState(medication?.isActive ?? true);
 
+  // Planned dosage change. An already-applied change is treated as "no pending
+  // change", so editing a medication doesn't resurrect an old one.
+  const pendingChange =
+    medication?.dosageChange && !medication.dosageChange.applied
+      ? medication.dosageChange
+      : null;
+  const [hasDosageChange, setHasDosageChange] = useState(pendingChange !== null);
+  const [changeDate, setChangeDate] = useState(pendingChange?.effectiveDate ?? '');
+  const [newDosage, setNewDosage] = useState(pendingChange?.newDosage ?? '');
+  const [changeNote, setChangeNote] = useState(pendingChange?.note ?? '');
+  // Default to reminders on; `!== false` keeps changes saved before this flag existed
+  const [remindChange, setRemindChange] = useState(
+    pendingChange ? pendingChange.remind !== false : true,
+  );
+
+  const trend = getDosageTrend(dosage, newDosage);
+  // The date input must not accept a day that has already passed
+  const minChangeDate = toDateKey(new Date());
+  const changeDateIsValid = changeDate !== '' && changeDate >= minChangeDate;
+
   const toggleDay = (day: DayOfWeek) => {
     setDays((prev) =>
       prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day],
@@ -54,6 +76,14 @@ export function MedicationForm({ medication, open, onSave, onCancel }: Medicatio
     e.preventDefault();
     if (!name.trim() || !dosage.trim() || times.length === 0 || days.length === 0) return;
 
+    const wantsChange =
+      hasDosageChange && changeDateIsValid && newDosage.trim() !== '';
+
+    // Keep already-notified offsets when only the note/dosage is tweaked, but
+    // reset them if the effective date moved, so reminders fire for the new date.
+    const keepNotified =
+      pendingChange !== null && pendingChange.effectiveDate === changeDate;
+
     const med: Medication = {
       id: medication?.id ?? crypto.randomUUID(),
       name: name.trim(),
@@ -65,6 +95,17 @@ export function MedicationForm({ medication, open, onSave, onCancel }: Medicatio
       notes: notes.trim(),
       isActive,
       createdAt: medication?.createdAt ?? new Date().toISOString(),
+      dosageChange: wantsChange
+        ? {
+            effectiveDate: changeDate,
+            newDosage: newDosage.trim(),
+            note: changeNote.trim(),
+            remind: remindChange,
+            applied: false,
+            notifiedOffsets: keepNotified ? pendingChange.notifiedOffsets : [],
+          }
+        : null,
+      dosageHistory: medication?.dosageHistory ?? [],
     };
 
     onSave(med);
@@ -102,6 +143,104 @@ export function MedicationForm({ medication, open, onSave, onCancel }: Medicatio
               placeholder="مثلاً 500mg"
               required
             />
+          </div>
+
+          {/* Planned dosage change */}
+          <div className="rounded-lg border p-3 space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <div className="space-y-0.5">
+                <Label htmlFor="med-has-change">
+                  احتمال تغییر دوز وجود دارد؟
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  اگر پزشک گفته دوز در آینده کم یا زیاد می‌شود، تاریخش را ثبت کنید.
+                </p>
+              </div>
+              <Switch
+                id="med-has-change"
+                checked={hasDosageChange}
+                onCheckedChange={setHasDosageChange}
+              />
+            </div>
+
+            {hasDosageChange && (
+              <div className="space-y-3 pt-1">
+                <div className="space-y-2">
+                  <Label htmlFor="med-change-date">تاریخ تغییر دوز</Label>
+                  <JalaliDatePicker
+                    id="med-change-date"
+                    value={changeDate}
+                    onChange={setChangeDate}
+                    minDateKey={minChangeDate}
+                  />
+                  {changeDate === '' && (
+                    <p className="text-xs text-muted-foreground">
+                      تاریخ شروع دوز جدید را انتخاب کنید.
+                    </p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="med-new-dosage">دوز جدید</Label>
+                  <Input
+                    id="med-new-dosage"
+                    value={newDosage}
+                    onChange={(e) => setNewDosage(e.target.value)}
+                    placeholder="مثلاً 250mg"
+                    required
+                  />
+                  {newDosage.trim() !== '' && trend !== 'unknown' && (
+                    <p
+                      className={cn(
+                        'text-xs flex items-center gap-1',
+                        trend === 'increase' ? 'text-orange-600' : 'text-green-600',
+                      )}
+                    >
+                      {trend === 'increase' ? (
+                        <ArrowUp className="h-3.5 w-3.5" />
+                      ) : (
+                        <ArrowDown className="h-3.5 w-3.5" />
+                      )}
+                      {DOSAGE_TREND_LABEL[trend]}: از {dosage || '—'} به{' '}
+                      {newDosage.trim()}
+                    </p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="med-change-note">دلیل تغییر (اختیاری)</Label>
+                  <Input
+                    id="med-change-note"
+                    value={changeNote}
+                    onChange={(e) => setChangeNote(e.target.value)}
+                    placeholder="مثلاً طبق دستور پزشک"
+                  />
+                </div>
+
+                {/* Reminder opt-in */}
+                <div className="flex items-center justify-between gap-3 rounded-md bg-muted/50 p-2.5">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="med-remind-change">
+                      برای این تغییر یادآوری کنم؟
+                    </Label>
+                    <p className="text-xs text-muted-foreground">
+                      ۲ روز قبل، ۱ روز قبل و روز تغییر اطلاع می‌دهم.
+                    </p>
+                  </div>
+                  <Switch
+                    id="med-remind-change"
+                    checked={remindChange}
+                    onCheckedChange={setRemindChange}
+                  />
+                </div>
+
+                <p className="text-xs text-muted-foreground">
+                  {remindChange
+                    ? 'در تاریخ انتخابی دوز به‌صورت خودکار به‌روز می‌شود و یادآوری‌ها ارسال می‌شود.'
+                    : 'در تاریخ انتخابی دوز به‌صورت خودکار به‌روز می‌شود، اما یادآوری‌ای ارسال نمی‌شود.'}
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Color */}

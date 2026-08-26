@@ -1,6 +1,23 @@
+import { format } from 'date-fns-jalali';
 import type { Medication } from '../types';
 import { DAYS_OF_WEEK } from '../types';
-import { Clock, Calendar, Pencil, Trash2 } from 'lucide-react';
+import {
+  DOSAGE_TREND_LABEL,
+  daysUntilChange,
+  formatDaysUntil,
+  fromDateKey,
+  getDosageTrend,
+} from '../dosage';
+import {
+  Clock,
+  Calendar,
+  Pencil,
+  Trash2,
+  ArrowUp,
+  ArrowDown,
+  CalendarClock,
+  BellOff,
+} from 'lucide-react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardAction } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -18,6 +35,15 @@ export function MedicationCard({ medication, onEdit, onDelete }: MedicationCardP
       : medication.days
           .map((d) => DAYS_OF_WEEK.find((dw) => dw.value === d)?.label ?? d)
           .join('، ');
+
+  const pendingChange =
+    medication.dosageChange && !medication.dosageChange.applied
+      ? medication.dosageChange
+      : null;
+  const daysLeft = daysUntilChange(pendingChange);
+  const changeTrend = pendingChange
+    ? getDosageTrend(medication.dosage, pendingChange.newDosage)
+    : 'unknown';
 
   return (
     <Card className="overflow-hidden">
@@ -60,6 +86,37 @@ export function MedicationCard({ medication, onEdit, onDelete }: MedicationCardP
         <p className="text-sm text-muted-foreground">
           دوز: <span className="font-medium text-foreground">{medication.dosage}</span>
         </p>
+
+        {/* Upcoming dosage change */}
+        {pendingChange && daysLeft !== null && daysLeft >= 0 && (
+          <div className="rounded-md border border-primary/30 bg-primary/5 p-2.5 space-y-1">
+            <p className="text-xs font-medium flex items-center gap-1.5">
+              {changeTrend === 'increase' ? (
+                <ArrowUp className="h-3.5 w-3.5 text-orange-600" />
+              ) : changeTrend === 'decrease' ? (
+                <ArrowDown className="h-3.5 w-3.5 text-green-600" />
+              ) : (
+                <CalendarClock className="h-3.5 w-3.5 text-primary" />
+              )}
+              {DOSAGE_TREND_LABEL[changeTrend]} {formatDaysUntil(daysLeft)}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {format(fromDateKey(pendingChange.effectiveDate), 'd MMMM yyyy')} →{' '}
+              <span className="font-medium text-foreground">
+                {pendingChange.newDosage}
+              </span>
+            </p>
+            {pendingChange.note && (
+              <p className="text-xs text-muted-foreground">{pendingChange.note}</p>
+            )}
+            {pendingChange.remind === false && (
+              <p className="text-xs text-muted-foreground flex items-center gap-1">
+                <BellOff className="h-3 w-3" />
+                بدون یادآوری
+              </p>
+            )}
+          </div>
+        )}
 
         {/* Times */}
         <div className="flex items-center gap-2 text-sm text-muted-foreground">

@@ -7,6 +7,31 @@ export type DayOfWeek =
   | 'thursday'
   | 'friday';
 
+/**
+ * A scheduled (planned) dosage change for a medication.
+ * The dosage may go up or down; `newDosage` is applied to the medication
+ * once `effectiveDate` arrives.
+ */
+export interface DosageChange {
+  effectiveDate: string; // YYYY-MM-DD - the day the new dosage takes effect
+  newDosage: string;
+  note: string;
+  /**
+   * Whether to notify ahead of the change. When false the dosage is still
+   * updated on the effective date, just silently.
+   */
+  remind: boolean;
+  applied: boolean; // true once newDosage has replaced medication.dosage
+  /** Day offsets (2, 1, 0) that have already been notified, to avoid repeats */
+  notifiedOffsets: number[];
+}
+
+/** Record of a dosage that was replaced by a scheduled change */
+export interface DosageHistoryEntry {
+  dosage: string;
+  replacedAt: string; // ISO string
+}
+
 export interface Medication {
   id: string;
   name: string;
@@ -18,6 +43,10 @@ export interface Medication {
   notes: string;
   isActive: boolean;
   createdAt: string; // ISO string
+  /** Optional planned dosage change. Null/undefined when none is scheduled. */
+  dosageChange?: DosageChange | null;
+  /** Previous dosages, appended whenever a scheduled change is applied */
+  dosageHistory?: DosageHistoryEntry[];
 }
 
 export interface IntakeLog {

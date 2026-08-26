@@ -13,6 +13,11 @@ interface MedicationContextValue {
   updateIntakeLog: (log: IntakeLog) => void;
   getLogsForDate: (date: Date) => IntakeLog[];
   getTodayLogs: () => IntakeLog[];
+  /**
+   * Applies any due dosage changes and returns the reminders that should be
+   * surfaced right now. Safe to call repeatedly - each reminder fires once.
+   */
+  processDosageChanges: () => store.DosageChangeAlert[];
 }
 
 const MedicationContext = createContext<MedicationContextValue | null>(null);
@@ -22,7 +27,9 @@ export function MedicationProvider({ children }: { children: ReactNode }) {
   const [intakeLogs, setIntakeLogs] = useState<IntakeLog[]>([]);
 
   useEffect(() => {
-    setMedications(store.getMedications());
+    // Apply any dosage change that came due while the app was closed
+    const { medications: initial } = store.processDosageChanges();
+    setMedications(initial);
     setIntakeLogs(store.getIntakeLogs());
   }, []);
 
@@ -60,6 +67,16 @@ export function MedicationProvider({ children }: { children: ReactNode }) {
     return store.getLogsForDate(new Date());
   }, []);
 
+  const handleProcessDosageChanges = useCallback(() => {
+    const { medications: updated, alerts, mutated } = store.processDosageChanges();
+    // Only swap state when something actually changed, otherwise the new array
+    // reference would re-render (and re-trigger) on every interval tick.
+    if (mutated) {
+      setMedications(updated);
+    }
+    return alerts;
+  }, []);
+
   return (
     <MedicationContext.Provider
       value={{
@@ -72,6 +89,7 @@ export function MedicationProvider({ children }: { children: ReactNode }) {
         updateIntakeLog: handleUpdateIntakeLog,
         getLogsForDate,
         getTodayLogs,
+        processDosageChanges: handleProcessDosageChanges,
       }}
     >
       {children}
