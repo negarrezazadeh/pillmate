@@ -1,14 +1,12 @@
 /**
- * Date-key helpers shared across features.
- *
- * A "date key" is a Gregorian `YYYY-MM-DD` string. It is the storage format:
- * unambiguous, sortable with plain string comparison, and calendar-agnostic.
- * Jalali formatting happens only at the presentation layer.
+ * A "date key" is a Gregorian `YYYY-MM-DD` string: unambiguous, sortable with
+ * plain string comparison, and calendar-agnostic. Jalali formatting happens only
+ * at the presentation layer.
  */
 
 /**
- * Local (not UTC) date key. Using local time matters: `toISOString()` would
- * shift the day for timezones ahead of UTC (e.g. Tehran after 20:30).
+ * Local, not UTC. `toISOString()` would shift the day for timezones ahead of
+ * UTC - a Date at local midnight in Tehran is 20:30 the previous day in UTC.
  */
 export function toDateKey(date: Date): string {
   const y = date.getFullYear();
@@ -17,16 +15,12 @@ export function toDateKey(date: Date): string {
   return `${y}-${m}-${d}`;
 }
 
-/** Parse a date key into a local Date at midnight */
 export function fromDateKey(key: string): Date {
   const [y, m, d] = key.split('-').map(Number);
   return new Date(y, m - 1, d);
 }
 
-/**
- * Whole days from `fromKey` to `toKey`. Computed through UTC timestamps so a
- * daylight-saving transition in between cannot produce a fractional result.
- */
+/** Via UTC timestamps, so a DST transition in between cannot skew the result. */
 export function daysBetweenKeys(fromKey: string, toKey: string): number {
   const [fy, fm, fd] = fromKey.split('-').map(Number);
   const [ty, tm, td] = toKey.split('-').map(Number);

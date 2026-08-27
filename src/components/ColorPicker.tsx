@@ -16,16 +16,11 @@ interface ColorPickerProps {
   onChange: (color: string) => void;
 }
 
-/** Palette membership is compared case-insensitively */
 function isPaletteColor(color: string): boolean {
   return COLOR_PALETTE.some((c) => c.toLowerCase() === color.toLowerCase());
 }
 
-/**
- * Relative luminance, used to pick a readable checkmark colour on top of the
- * swatch. Custom colours can be very light or very dark, so a fixed white
- * check would disappear on pale picks.
- */
+/** A fixed white checkmark would disappear on a pale custom colour. */
 function isLightColor(hex: string): boolean {
   const normalized = hex.replace('#', '');
   if (normalized.length !== 6) return false;
@@ -36,13 +31,8 @@ function isLightColor(hex: string): boolean {
   return (0.299 * r + 0.587 * g + 0.114 * b) / 255 > 0.6;
 }
 
-/**
- * Colour selection with two paths: the shared palette for quick, consistent
- * picks, and a free colour picker in a popover for anything else.
- */
 export function ColorPicker({ id, value, onChange }: ColorPickerProps) {
   const custom = !isPaletteColor(value);
-  // Unique per instance so two pickers on one page keep valid label targets
   const hexInputId = `${useId()}-hex`;
 
   return (
@@ -77,11 +67,10 @@ export function ColorPicker({ id, value, onChange }: ColorPickerProps) {
           );
         })}
 
-        {/* Free colour choice */}
         <Popover>
           <PopoverTrigger
             id={id}
-            // type="button" matters: this sits inside a form and must not submit
+            // Inside a form, so it must not submit
             type="button"
             aria-label="انتخاب رنگ دلخواه"
             className={cn(
@@ -95,7 +84,6 @@ export function ColorPicker({ id, value, onChange }: ColorPickerProps) {
               custom
                 ? { backgroundColor: value }
                 : {
-                    // Rainbow hint so the affordance reads as "any colour"
                     background:
                       'conic-gradient(#ef4444, #eab308, #22c55e, #06b6d4, #3b82f6, #8b5cf6, #ec4899, #ef4444)',
                   }
@@ -114,7 +102,6 @@ export function ColorPicker({ id, value, onChange }: ColorPickerProps) {
           </PopoverTrigger>
 
           <PopoverContent className="w-auto gap-3">
-            {/* react-colorful sizes itself through its root element */}
             <HexColorPicker
               color={value}
               onChange={onChange}

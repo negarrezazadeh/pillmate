@@ -41,13 +41,8 @@ interface Dose {
   state: DoseState;
 }
 
-/** A dose that survived the `ignored` filter and will be rendered */
 type VisibleDose = Omit<Dose, 'state'> & { state: VisibleDoseState };
 
-/**
- * Per-state row appearance and the secondary line shown next to the time.
- * Plain function, not a hook - it calls none.
- */
 function getDoseAppearance(dose: VisibleDose, now: Date) {
   switch (dose.state) {
     case 'due':
@@ -99,8 +94,7 @@ function DoseRow({
 
   return (
     <div
-      // Naming the row lets the browser match it across sections and animate it
-      // gliding from its old position to the new one
+      // Named so the browser can match it across sections and animate the move
       style={{ viewTransitionName: toViewTransitionName('dose', dose.key) }}
       className={cn(
         'flex items-center justify-between p-3 rounded-lg border transition-colors',
@@ -144,8 +138,8 @@ function DoseRow({
         ) : (
           <Button
             size="sm"
-            // A missed dose can still be recorded, but it should not compete
-            // visually with the one that is actually due now
+            // A missed dose is still recordable, but must not compete with the
+            // one actually due now
             variant={state === 'due' ? 'default' : 'outline'}
             onClick={onTake}
           >
@@ -169,8 +163,6 @@ function SectionHeading({
   tone?: string;
 }) {
   return (
-    // Plain divider rules rather than <Separator>, whose base classes
-    // (shrink-0, w-full) fight flex-1 depending on CSS class order
     <div className="flex items-center gap-3 pt-1">
       <div className="h-px flex-1 bg-border" />
       <span
@@ -191,7 +183,6 @@ export function DailyMedications() {
   const { updateIntakeLog } = useMedicationContext();
   const todayMedications = useTodayMedications();
   const { missingLogs, generateLogs } = useGenerateTodayLogs();
-  // Dose states advance on their own as the clock moves
   const now = useNow(30_000);
 
   useEffect(() => {
@@ -204,9 +195,8 @@ export function DailyMedications() {
     if (!dose.log) return;
     const log = dose.log;
 
-    // The row moves between sections, so it unmounts and remounts. A view
-    // transition lets the browser animate it travelling to its new position
-    // instead of disappearing and reappearing.
+    // The row unmounts from one section and mounts in another, so only a view
+    // transition can animate the move
     withViewTransition(() => {
       updateIntakeLog({
         ...log,
@@ -240,14 +230,11 @@ export function DailyMedications() {
         };
       }),
     )
-    // Slots that predate the medication never had a chance to be taken, so they
-    // are dropped entirely rather than shown as missed
+    // Slots predating the medication are dropped, not shown as missed
     .filter((dose): dose is VisibleDose => dose.state !== 'ignored')
     .sort((a, b) => a.time.localeCompare(b.time));
 
-  // Nothing schedulable today. Covers both "no medication runs today" and
-  // "every slot today predates the record", which is common right after adding
-  // a medication in the afternoon.
+  // Covers both "nothing runs today" and "every slot today predates the record"
   if (doses.length === 0) {
     return (
       <Card>
@@ -315,8 +302,6 @@ export function DailyMedications() {
       </CardHeader>
 
       <CardContent className="space-y-3">
-        {/* Only a genuine completion: there were doses today and every one of
-            them is recorded. An empty day is handled above instead. */}
         {taken.length === doses.length && (
           <div className="flex items-center justify-center gap-2 py-6 text-sm text-muted-foreground">
             <CheckCircle2 className="h-4 w-4 text-green-600" />

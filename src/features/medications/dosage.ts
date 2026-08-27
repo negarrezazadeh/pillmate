@@ -1,19 +1,13 @@
 import type { DosageChange } from './types';
 import { daysBetweenKeys, toDateKey } from '@/lib/date';
 
-// Re-exported so callers in this feature can keep a single import site
 export { daysBetweenKeys, fromDateKey, toDateKey } from '@/lib/date';
 
-/** Number of days before the effective date that we remind the user */
 export const DOSAGE_REMINDER_OFFSETS = [2, 1, 0] as const;
 
 export type DosageTrend = 'increase' | 'decrease' | 'unknown';
 
-/**
- * Compare the leading number of two free-text dosages (e.g. "500mg" vs "250mg")
- * to tell whether the dose goes up or down. Returns 'unknown' when either side
- * has no parsable number or the numbers are equal.
- */
+/** Compares the leading number of two free-text dosages, e.g. "500mg". */
 export function getDosageTrend(current: string, next: string): DosageTrend {
   const parse = (value: string): number | null => {
     const match = value.match(/\d+(?:[.,]\d+)?/);
@@ -33,10 +27,7 @@ export const DOSAGE_TREND_LABEL: Record<DosageTrend, string> = {
   unknown: 'تغییر دوز',
 };
 
-/**
- * Days remaining until a change takes effect. Negative when already past.
- * Returns null when there is no pending change.
- */
+/** Negative when already past, null when no change is pending. */
 export function daysUntilChange(
   change: DosageChange | null | undefined,
   now: Date = new Date(),
@@ -45,7 +36,6 @@ export function daysUntilChange(
   return daysBetweenKeys(toDateKey(now), change.effectiveDate);
 }
 
-/** Human readable countdown used in cards and notifications */
 export function formatDaysUntil(days: number): string {
   if (days === 0) return 'امروز';
   if (days === 1) return 'فردا';

@@ -33,9 +33,8 @@ export function updateMedication(updated: Medication): Medication[] {
 }
 
 /**
- * Archived (deleted) medications, kept only so history can still name them.
- * They are stored under their own key so `getMedications()` cannot accidentally
- * return one and leak a deleted medication back into the schedule.
+ * Kept under their own key so `getMedications()` cannot return one and leak a
+ * deleted medication back into the schedule.
  */
 export function getArchivedMedications(): ArchivedMedication[] {
   const data = localStorage.getItem(ARCHIVED_MEDICATIONS_KEY);
@@ -50,11 +49,8 @@ export function saveArchivedMedications(
 }
 
 /**
- * Removes a medication from the schedule and archives the record.
- *
- * Intake logs are deliberately left untouched: they record what actually
- * happened and must outlive the medication. Previously this deleted them, which
- * erased the user's history.
+ * Intake logs are deliberately left untouched: they record what happened and
+ * must outlive the medication.
  */
 export function deleteMedication(id: string): {
   medications: Medication[];
@@ -82,7 +78,7 @@ export function deleteMedication(id: string): {
 export interface DosageChangeAlert {
   medicationId: string;
   medicationName: string;
-  /** 2 = two days out, 1 = tomorrow, 0 = takes effect today */
+  /** 2 = two days out, 1 = tomorrow, 0 = today */
   daysUntil: number;
   fromDosage: string;
   toDosage: string;
@@ -90,18 +86,14 @@ export interface DosageChangeAlert {
 }
 
 /**
- * Single pass over the medications that:
- *   1. collects reminders due today (2 days before, 1 day before, and the day itself)
- *   2. applies any change whose effective date has arrived, archiving the old dosage
- *
- * Both happen together so a day-0 reminder still reports the dosage the user is
- * moving away from. Reminder offsets are recorded on the medication, so each
- * reminder fires only once even if the app is reopened several times a day.
+ * Collects due reminders and applies due changes in one pass, so a day-0
+ * reminder still reports the dosage being moved away from. Fired offsets are
+ * recorded on the medication so each reminder happens once.
  */
 export function processDosageChanges(): {
   medications: Medication[];
   alerts: DosageChangeAlert[];
-  /** True when something was written back, so callers know to refresh state */
+  /** True when something was written back. */
   mutated: boolean;
 } {
   const todayKey = toDateKey(new Date());
@@ -115,8 +107,7 @@ export function processDosageChanges(): {
     const daysUntil = daysBetweenKeys(todayKey, change.effectiveDate);
     let next = med;
 
-    // Reminder window: two days out, one day out, and the day it happens.
-    // `remind !== false` so changes saved before this flag existed still remind.
+    // `remind !== false` so changes saved before this flag existed still remind
     const wantsReminders = change.remind !== false;
     const withinReminderWindow = wantsReminders && daysUntil >= 0 && daysUntil <= 2;
     if (withinReminderWindow && !change.notifiedOffsets.includes(daysUntil)) {
@@ -138,7 +129,7 @@ export function processDosageChanges(): {
       mutated = true;
     }
 
-    // Effective date reached (or passed, e.g. the app was closed for a while)
+    // Passed rather than reached, if the app was closed for a while
     if (daysUntil <= 0) {
       next = {
         ...next,
