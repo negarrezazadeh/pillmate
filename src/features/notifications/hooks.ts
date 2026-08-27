@@ -8,6 +8,13 @@ import {
   fromDateKey,
   getDosageTrend,
 } from '../medications/dosage';
+import { isMedicationScheduledOn } from '../medications/schedule';
+import {
+  DOSE_WINDOW_MINUTES,
+  formatMinutes,
+  getDoseState,
+  getScheduledDate,
+} from '../medications/dose-state';
 import { toDateKey } from '@/lib/date';
 import {
   sendNotification,
@@ -161,4 +168,69 @@ export function useDosageChangeChecker() {
 
     return () => clearInterval(interval);
   }, [checkDosageChanges]);
+}
+
+/**
+ * Hook that notifies once the take window has elapsed on a dose that was never
+ * marked as taken.
+ *
+ * This is the boundary between the "due" and "missed" states: the alarm at the
+ * scheduled time is handled by useNotificationChecker, and this fires
+ * DOSE_WINDOW_MINUTES later.
+ */
+export function useMissedDoseChecker() {
+  const { medications, intakeLogs } = useMedicationContext();
+  // Doses already announced this session, so a re-render does not re-notify
+  const announcedRef = useRef<Set<string>>(new Set());
+
+  const checkMissed = useCallback(() => {
+    if (getNotificationPermission() !== 'granted') return;
+
+    const now = new Date();
+    const todayKey = toDateKey(now);
+    const today = getCurrentDay();
+
+    for (const med of medications) {
+      if (!isMedicationScheduledOn(med, now)) continue;
+      if (!med.days.includes(today)) continue;
+
+      for (const time of med.times) {
+        const scheduledTime = `${todayKey}T${time}:00`;
+        const log = intakeLogs.find(
+          (l) => l.medicationId === med.id && l.scheduledTime === scheduledTime,
+        );
+
+        const scheduled = getScheduledDate(todayKey, time);
+        const state = getDoseState({
+          scheduled,
+          log,
+          createdAt: med.createdAt,
+          now,
+        });
+        // 'ignored' slots predate the medication, so there is nothing to warn
+        // about; only a genuinely elapsed window counts
+        if (state !== 'missed') continue;
+
+        const doseKey = `${med.id}-${time}`;
+        if (announcedRef.current.has(doseKey)) continue;
+        announcedRef.current.add(doseKey);
+
+        sendNotification(`${med.name} مصرف نشد`, {
+          body: `${formatMinutes(DOSE_WINDOW_MINUTES)} از ساعت ${time} گذشت و این دوز ثبت نشد.`,
+          // A stable tag means a reload replaces the old notification instead of
+          // stacking a duplicate
+          tag: `dose-missed-${doseKey}-${todayKey}`,
+        });
+      }
+    }
+  }, [medications, intakeLogs]);
+
+  useEffect(() => {
+    checkMissed();
+
+    // The window boundary only needs minute-level accuracy
+    const interval = setInterval(checkMissed, 60_000);
+
+    return () => clearInterval(interval);
+  }, [checkMissed]);
 }

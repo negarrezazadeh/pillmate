@@ -1,4 +1,8 @@
-import { useDosageChangeChecker, useNotificationChecker } from '../hooks';
+import {
+  useDosageChangeChecker,
+  useMissedDoseChecker,
+  useNotificationChecker,
+} from '../hooks';
 
 /**
  * Invisible component that initializes the notification checking intervals.
@@ -6,6 +10,7 @@ import { useDosageChangeChecker, useNotificationChecker } from '../hooks';
  */
 export function NotificationInitializer() {
   useNotificationChecker();
+  useMissedDoseChecker();
   useDosageChangeChecker();
   return null;
 }

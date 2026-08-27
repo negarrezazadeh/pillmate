@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { useMedicationContext } from './context';
 import type { IntakeLog, MedicationWithLogs } from './types';
 import { isMedicationScheduledOn } from './schedule';
+import { getDoseState, getScheduledDate } from './dose-state';
 import { toDateKey } from '@/lib/date';
 
 // Scheduling primitives live in ./schedule; re-exported so existing callers
@@ -70,10 +71,20 @@ export function useDashboardStats() {
       (log) => log.scheduledTime.split('T')[0] === todayDateStr,
     );
     const takenToday = todayLogs.filter((log) => log.status === 'taken').length;
-    const totalTodayDoses = todayMedications.reduce(
-      (sum, med) => sum + med.times.length,
-      0,
-    );
+
+    // Count only slots that were actually schedulable today. A medication added
+    // this afternoon must not inflate the total with its morning slots.
+    const totalTodayDoses = todayMedications.reduce((sum, med) => {
+      const countable = med.times.filter(
+        (time) =>
+          getDoseState({
+            scheduled: getScheduledDate(todayDateStr, time),
+            createdAt: med.createdAt,
+            now: today,
+          }) !== 'ignored',
+      ).length;
+      return sum + countable;
+    }, 0);
 
     return {
       totalMedications: medications.length,
@@ -154,6 +165,16 @@ export function useGenerateTodayLogs() {
     for (const med of todayMedications) {
       for (const time of med.times) {
         const scheduledTime = `${todayDateStr}T${time}:00`;
+
+        // Do not create a log for a slot that predates the medication, or it
+        // would linger in storage as a dose that was never really scheduled
+        const state = getDoseState({
+          scheduled: getScheduledDate(todayDateStr, time),
+          createdAt: med.createdAt,
+          now: today,
+        });
+        if (state === 'ignored') continue;
+
         const exists = intakeLogs.some(
           (log) =>
             log.medicationId === med.id &&

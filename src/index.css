@@ -244,3 +244,27 @@ a.active {
   color: var(--sidebar-accent-foreground);
   font-weight: 500;
 }
+
+/* View transitions
+   Used when a dose row moves between sections on the dashboard. The browser
+   default is 250ms with a fairly flat curve, which reads as abrupt; this slows
+   it down and eases out so the row settles gently.
+
+   These rules apply to every view transition in the app. That is fine today
+   because the dose rows are the only ones, but anything added later inherits
+   this timing.
+
+   Reduced motion is handled in withViewTransition(), which skips the
+   transition entirely rather than animating to nowhere. */
+::view-transition-group(*) {
+  animation-duration: 520ms;
+  /* quick start, long soft settle */
+  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* The cross-fade of the surrounding content should be quicker than the
+   movement, otherwise the whole card looks like it is dissolving */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 220ms;
+}
