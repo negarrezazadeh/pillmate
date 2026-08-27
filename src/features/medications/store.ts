@@ -1,8 +1,9 @@
-import type { Medication, IntakeLog } from './types';
+import type { ArchivedMedication, Medication, IntakeLog } from './types';
 import { daysBetweenKeys, toDateKey } from './dosage';
 
 const MEDICATIONS_KEY = 'pillmate_medications';
 const INTAKE_LOGS_KEY = 'pillmate_intake_logs';
+const ARCHIVED_MEDICATIONS_KEY = 'pillmate_archived_medications';
 
 // Medications
 
@@ -31,13 +32,49 @@ export function updateMedication(updated: Medication): Medication[] {
   return medications;
 }
 
-export function deleteMedication(id: string): Medication[] {
-  const medications = getMedications().filter((m) => m.id !== id);
-  saveMedications(medications);
-  // Also remove related intake logs
-  const logs = getIntakeLogs().filter((l) => l.medicationId !== id);
-  saveIntakeLogs(logs);
-  return medications;
+/**
+ * Archived (deleted) medications, kept only so history can still name them.
+ * They are stored under their own key so `getMedications()` cannot accidentally
+ * return one and leak a deleted medication back into the schedule.
+ */
+export function getArchivedMedications(): ArchivedMedication[] {
+  const data = localStorage.getItem(ARCHIVED_MEDICATIONS_KEY);
+  if (!data) return [];
+  return JSON.parse(data) as ArchivedMedication[];
+}
+
+export function saveArchivedMedications(
+  medications: ArchivedMedication[],
+): void {
+  localStorage.setItem(ARCHIVED_MEDICATIONS_KEY, JSON.stringify(medications));
+}
+
+/**
+ * Removes a medication from the schedule and archives the record.
+ *
+ * Intake logs are deliberately left untouched: they record what actually
+ * happened and must outlive the medication. Previously this deleted them, which
+ * erased the user's history.
+ */
+export function deleteMedication(id: string): {
+  medications: Medication[];
+  archived: ArchivedMedication[];
+} {
+  const medications = getMedications();
+  const removed = medications.find((m) => m.id === id);
+  const remaining = medications.filter((m) => m.id !== id);
+  saveMedications(remaining);
+
+  let archived = getArchivedMedications();
+  if (removed) {
+    archived = [
+      ...archived.filter((a) => a.id !== id),
+      { ...removed, deletedAt: new Date().toISOString() },
+    ];
+    saveArchivedMedications(archived);
+  }
+
+  return { medications: remaining, archived };
 }
 
 // Dosage changes

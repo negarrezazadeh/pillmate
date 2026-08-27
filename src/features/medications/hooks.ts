@@ -3,6 +3,7 @@ import { useMedicationContext } from './context';
 import type { IntakeLog, MedicationWithLogs } from './types';
 import { isMedicationScheduledOn } from './schedule';
 import { getDoseState, getScheduledDate } from './dose-state';
+import { buildHistory, HISTORY_DAYS } from './history';
 import { toDateKey } from '@/lib/date';
 
 // Scheduling primitives live in ./schedule; re-exported so existing callers
@@ -98,53 +99,26 @@ export function useDashboardStats() {
 }
 
 /**
- * Hook to get intake history grouped by date (most recent first)
+ * Hook that builds the history timeline, newest day first.
+ *
+ * Includes deleted medications, because their doses stay in history: see
+ * buildHistory for why the timeline is reconstructed from the schedule rather
+ * than read straight off the intake logs.
  */
-export function useIntakeHistory(daysBack = 30) {
-  const { medications, intakeLogs } = useMedicationContext();
+export function useIntakeHistory(daysBack = HISTORY_DAYS) {
+  const { medications, archivedMedications, intakeLogs } =
+    useMedicationContext();
 
-  return useMemo(() => {
-    // Only include non-pending logs (taken or missed)
-    const historyLogs = intakeLogs.filter(
-      (log) => log.status === 'taken' || log.status === 'missed',
-    );
-
-    // Group by date
-    const grouped = new Map<string, IntakeLog[]>();
-    for (const log of historyLogs) {
-      const dateStr = log.scheduledTime.split('T')[0];
-      if (!grouped.has(dateStr)) {
-        grouped.set(dateStr, []);
-      }
-      grouped.get(dateStr)!.push(log);
-    }
-
-    // Sort dates descending and limit
-    const sortedDates = [...grouped.keys()]
-      .sort((a, b) => b.localeCompare(a))
-      .slice(0, daysBack);
-
-    // Build result with medication info
-    return sortedDates.map((dateStr) => {
-      const logs = grouped.get(dateStr)!;
-      const logsWithMedInfo = logs
-        .map((log) => {
-          const med = medications.find((m) => m.id === log.medicationId);
-          return med ? { ...log, medication: med } : null;
-        })
-        .filter(Boolean) as (IntakeLog & { medication: typeof medications[number] })[];
-
-      // Sort by scheduled time
-      logsWithMedInfo.sort((a, b) =>
-        a.scheduledTime.localeCompare(b.scheduledTime),
-      );
-
-      return {
-        date: dateStr,
-        logs: logsWithMedInfo,
-      };
-    });
-  }, [medications, intakeLogs, daysBack]);
+  return useMemo(
+    () =>
+      buildHistory({
+        medications,
+        archived: archivedMedications,
+        logs: intakeLogs,
+        days: daysBack,
+      }),
+    [medications, archivedMedications, intakeLogs, daysBack],
+  );
 }
 
 /**

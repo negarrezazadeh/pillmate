@@ -58,6 +58,17 @@ export interface Medication {
   dosageHistory?: DosageHistoryEntry[];
 }
 
+/**
+ * A medication the user deleted.
+ *
+ * The record is archived rather than destroyed so its intake history stays
+ * readable. Deleting a medication removes it from the schedule; it does not
+ * undo the fact that doses were taken.
+ */
+export interface ArchivedMedication extends Medication {
+  deletedAt: string; // ISO string
+}
+
 export interface IntakeLog {
   id: string;
   medicationId: string;

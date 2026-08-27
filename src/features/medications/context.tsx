@@ -1,10 +1,15 @@
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
-import type { IntakeLog, Medication } from './types';
+import type { ArchivedMedication, IntakeLog, Medication } from './types';
 import * as store from './store';
 
 interface MedicationContextValue {
   medications: Medication[];
+  /**
+   * Deleted medications. Not part of the schedule; kept so history can still
+   * name and colour the doses that belong to them.
+   */
+  archivedMedications: ArchivedMedication[];
   intakeLogs: IntakeLog[];
   addMedication: (medication: Medication) => void;
   updateMedication: (medication: Medication) => void;
@@ -24,12 +29,16 @@ const MedicationContext = createContext<MedicationContextValue | null>(null);
 
 export function MedicationProvider({ children }: { children: ReactNode }) {
   const [medications, setMedications] = useState<Medication[]>([]);
+  const [archivedMedications, setArchivedMedications] = useState<
+    ArchivedMedication[]
+  >([]);
   const [intakeLogs, setIntakeLogs] = useState<IntakeLog[]>([]);
 
   useEffect(() => {
     // Apply any dosage change that came due while the app was closed
     const { medications: initial } = store.processDosageChanges();
     setMedications(initial);
+    setArchivedMedications(store.getArchivedMedications());
     setIntakeLogs(store.getIntakeLogs());
   }, []);
 
@@ -44,9 +53,11 @@ export function MedicationProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const handleDeleteMedication = useCallback((id: string) => {
-    const updated = store.deleteMedication(id);
-    setMedications(updated);
-    setIntakeLogs(store.getIntakeLogs());
+    const { medications: remaining, archived } = store.deleteMedication(id);
+    setMedications(remaining);
+    setArchivedMedications(archived);
+    // Intake logs are intentionally not reloaded here: deletion no longer
+    // touches them, so the existing state is still correct.
   }, []);
 
   const handleAddIntakeLog = useCallback((log: IntakeLog) => {
@@ -81,6 +92,7 @@ export function MedicationProvider({ children }: { children: ReactNode }) {
     <MedicationContext.Provider
       value={{
         medications,
+        archivedMedications,
         intakeLogs,
         addMedication: handleAddMedication,
         updateMedication: handleUpdateMedication,
