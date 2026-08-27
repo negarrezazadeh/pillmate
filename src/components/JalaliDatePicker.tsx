@@ -1,22 +1,16 @@
 import { useMemo, useState } from 'react';
 import {
   addMonths,
-  eachDayOfInterval,
-  endOfMonth,
-  endOfWeek,
   format,
   isSameDay,
   isSameMonth,
-  startOfMonth,
-  startOfWeek,
   subMonths,
 } from 'date-fns-jalali';
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { fromDateKey, toDateKey } from '@/lib/date';
+import { JALALI_WEEKDAY_LABELS, getJalaliMonthGrid } from '@/lib/jalali';
 import { Button } from '@/components/ui/button';
-
-const WEEKDAY_LABELS = ['ش', 'ی', 'د', 'س', 'چ', 'پ', 'ج'];
 
 interface JalaliDatePickerProps {
   id?: string;
@@ -47,12 +41,7 @@ export function JalaliDatePicker({
   const [open, setOpen] = useState(false);
   const [viewMonth, setViewMonth] = useState<Date>(() => selected ?? new Date());
 
-  const days = useMemo(() => {
-    // Jalali weeks start on Saturday
-    const start = startOfWeek(startOfMonth(viewMonth), { weekStartsOn: 6 });
-    const end = endOfWeek(endOfMonth(viewMonth), { weekStartsOn: 6 });
-    return eachDayOfInterval({ start, end });
-  }, [viewMonth]);
+  const days = useMemo(() => getJalaliMonthGrid(viewMonth), [viewMonth]);
 
   const handlePick = (day: Date) => {
     onChange(toDateKey(day));
@@ -119,7 +108,7 @@ export function JalaliDatePicker({
 
           {/* Weekday headers */}
           <div className="grid grid-cols-7 mb-1">
-            {WEEKDAY_LABELS.map((label) => (
+            {JALALI_WEEKDAY_LABELS.map((label) => (
               <div
                 key={label}
                 className="text-center text-[11px] font-medium text-muted-foreground py-1"

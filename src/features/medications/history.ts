@@ -1,19 +1,11 @@
-import {
-  eachDayOfInterval,
-  endOfMonth,
-  endOfWeek,
-  startOfMonth,
-  startOfWeek,
-} from 'date-fns-jalali';
+import { getJalaliMonthStart, getJalaliWeekStart } from '@/lib/jalali';
 import type { ArchivedMedication, IntakeLog, Medication } from './types';
 import { getDoseState, getScheduledDate } from './dose-state';
 import { getDayOfWeek, getMedicationStartKey } from './schedule';
 import { toDateKey } from '@/lib/date';
 
-/** How many days back the timeline is reconstructed by default */
 export const HISTORY_DAYS = 90;
 
-/** Only settled outcomes appear in history; nothing still actionable does */
 export type HistoryDoseState = 'taken' | 'missed';
 
 export interface HistoryDose {
@@ -22,12 +14,9 @@ export interface HistoryDose {
   medicationName: string;
   dosage: string;
   color: string;
-  /** HH:mm the dose was scheduled for */
   time: string;
   state: HistoryDoseState;
-  /** ISO string, present when the dose was recorded */
   takenAt: string | null;
-  /** True when the medication has since been deleted */
   isArchived: boolean;
 }
 
@@ -38,7 +27,6 @@ export interface HistoryEvent {
   kind: HistoryEventKind;
   medicationName: string;
   color: string;
-  /** Extra wording, e.g. the dosage that was replaced */
   detail?: string;
 }
 
@@ -49,31 +37,24 @@ export interface HistoryDay {
 }
 
 interface BuildHistoryInput {
-  /** Medications currently on the schedule */
   medications: Medication[];
-  /** Medications the user deleted */
   archived: ArchivedMedication[];
   logs: IntakeLog[];
   days?: number;
   now?: Date;
 }
 
-/** HH:mm portion of a stored scheduledTime */
 function timeOf(scheduledTime: string): string {
   return scheduledTime.split('T')[1]?.slice(0, 5) ?? '';
 }
 
-/** YYYY-MM-DD portion of a stored scheduledTime */
 function dateKeyOf(scheduledTime: string): string {
   return scheduledTime.split('T')[0];
 }
 
 /**
- * Resolves what each archived dosage was replaced by.
- *
- * `dosageHistory` stores the dosage that was superseded plus when. The value it
- * changed *to* is therefore the next entry's dosage, or the medication's current
- * dosage for the most recent entry.
+ * `dosageHistory` stores the dosage that was superseded, so the value it changed
+ * *to* is the next entry's dosage, or the current dosage for the last entry.
  */
 function describeDosageChanges(
   medication: Medication,
@@ -91,22 +72,13 @@ function describeDosageChanges(
 }
 
 /**
- * Builds the day-by-day timeline shown on the history page.
- *
- * Two decisions worth knowing about:
- *
- * 1. Doses are reconstructed from the medication's schedule, not read off the
- *    intake logs. Logs only exist for days the app was actually opened, so a
- *    log-only history would silently omit every dose from a day the user never
- *    launched it - exactly the days most likely to contain missed doses.
- *
- * 2. Reconstruction never overrides a real log. For each medication and day the
- *    times considered are the union of the scheduled times and any times that
- *    already have a log. Without the union, editing a medication's times or days
- *    would make previously recorded doses vanish from history.
- *
- * `isActive` is deliberately ignored. It describes the schedule today; applying
- * it here would erase the past of any medication the user has paused.
+ * Doses are reconstructed from each medication's schedule rather than read off
+ * the logs, because logs only exist for days the app was opened - exactly the
+ * days least likely to contain a recorded dose. The times considered per day are
+ * the union of the scheduled times and any times that already have a log, so
+ * editing a schedule cannot make recorded doses vanish. `isActive` is ignored on
+ * purpose: it describes today, and applying it would erase a paused
+ * medication's past.
  */
 export function buildHistory({
   medications,
@@ -123,7 +95,6 @@ export function buildHistory({
     })),
   ];
 
-  // Lookup by exact slot, plus the times that have a log on a given day
   const logBySlot = new Map<string, IntakeLog>();
   const loggedTimesByMedDay = new Map<string, Set<string>>();
   for (const log of logs) {
@@ -151,7 +122,6 @@ export function buildHistory({
       const createdKey = toDateKey(new Date(medication.createdAt));
       const deletedKey = deletedAt ? toDateKey(new Date(deletedAt)) : null;
 
-      // --- events on this day
       if (createdKey === dateKey) {
         events.push({
           key: `added-${medication.id}`,
@@ -179,7 +149,6 @@ export function buildHistory({
         });
       }
 
-      // --- doses on this day
       const withinLifetime =
         dateKey >= getMedicationStartKey(medication) &&
         (deletedKey === null || dateKey <= deletedKey);
@@ -187,7 +156,6 @@ export function buildHistory({
         withinLifetime && medication.days.includes(weekday);
 
       const times = new Set<string>(scheduledToday ? medication.times : []);
-      // Anything already logged counts, even if the schedule has moved on since
       for (const time of loggedTimesByMedDay.get(`${medication.id}|${dateKey}`) ??
         []) {
         times.add(time);
@@ -203,7 +171,6 @@ export function buildHistory({
           now,
         });
 
-        // 'ignored' predates the record, 'upcoming'/'due' are not settled yet
         if (state !== 'taken' && state !== 'missed') continue;
 
         doses.push({
@@ -226,11 +193,9 @@ export function buildHistory({
     result.push({ dateKey, doses, events });
   }
 
-  // Already newest-first because the loop walks backwards from today
   return result;
 }
 
-/** Totals for a day, used for the summary badges */
 export function summariseDay(day: HistoryDay): {
   taken: number;
   missed: number;
@@ -240,8 +205,6 @@ export function summariseDay(day: HistoryDay): {
     missed: day.doses.filter((d) => d.state === 'missed').length,
   };
 }
-
-// Period filtering and aggregate stats
 
 export type HistoryPeriod = 'today' | 'week' | 'month';
 
@@ -254,11 +217,8 @@ export const HISTORY_PERIOD_LABEL: Record<HistoryPeriod, string> = {
 export const HISTORY_PERIODS: HistoryPeriod[] = ['today', 'week', 'month'];
 
 /**
- * Inclusive lower bound for a period, as a date key.
- *
- * Week and month boundaries come from the Jalali calendar, since that is the
- * calendar the user sees; a Gregorian month would cut the list at a date that
- * means nothing on screen. Weeks start on Saturday.
+ * Week and month bounds come from the Jalali calendar: a Gregorian month would
+ * cut the list at a date that means nothing on screen.
  */
 export function getPeriodStartKey(
   period: HistoryPeriod,
@@ -268,9 +228,9 @@ export function getPeriodStartKey(
     case 'today':
       return toDateKey(now);
     case 'week':
-      return toDateKey(startOfWeek(now, { weekStartsOn: 6 }));
+      return toDateKey(getJalaliWeekStart(now));
     case 'month':
-      return toDateKey(startOfMonth(now));
+      return toDateKey(getJalaliMonthStart(now));
   }
 }
 
@@ -287,7 +247,7 @@ export interface HistorySummary {
   taken: number;
   missed: number;
   total: number;
-  /** Percentage of settled doses that were recorded, 0-100. Null when none. */
+  /** 0-100, or null when nothing has settled yet. */
   adherence: number | null;
 }
 
@@ -307,34 +267,11 @@ export function summarisePeriod(days: HistoryDay[]): HistorySummary {
     taken,
     missed,
     total,
-    // Undefined rather than 0 when nothing settled yet: 0% would read as a
-    // perfect failure rather than "no data"
+    // null, not 0: 0% reads as total failure rather than "no data"
     adherence: total === 0 ? null : Math.round((taken / total) * 100),
   };
 }
 
-// Calendar helpers for the week and month views
-
-/** Fast lookup of a day's history by date key */
 export function indexByDateKey(days: HistoryDay[]): Map<string, HistoryDay> {
   return new Map(days.map((day) => [day.dateKey, day]));
-}
-
-/** The seven days of the current Jalali week, Saturday first */
-export function getWeekDates(now: Date = new Date()): Date[] {
-  return eachDayOfInterval({
-    start: startOfWeek(now, { weekStartsOn: 6 }),
-    end: endOfWeek(now, { weekStartsOn: 6 }),
-  });
-}
-
-/**
- * Every cell of the current Jalali month grid, including the leading and
- * trailing days needed to fill whole weeks.
- */
-export function getMonthGridDates(now: Date = new Date()): Date[] {
-  return eachDayOfInterval({
-    start: startOfWeek(startOfMonth(now), { weekStartsOn: 6 }),
-    end: endOfWeek(endOfMonth(now), { weekStartsOn: 6 }),
-  });
 }

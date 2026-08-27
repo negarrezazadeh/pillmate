@@ -1,10 +1,5 @@
 import { useState, useMemo } from 'react';
 import {
-  startOfMonth,
-  endOfMonth,
-  startOfWeek,
-  endOfWeek,
-  eachDayOfInterval,
   format,
   isSameMonth,
   isSameDay,
@@ -15,12 +10,11 @@ import { ChevronRight, ChevronLeft } from 'lucide-react';
 import { useMedicationContext } from '../../medications/context';
 import { isMedicationScheduledOn } from '../../medications/schedule';
 import { toDateKey } from '@/lib/date';
+import { JALALI_WEEKDAY_LABELS, getJalaliMonthGrid } from '@/lib/jalali';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { DayDetail } from './DayDetail';
-
-const WEEKDAY_LABELS = ['ش', 'ی', 'د', 'س', 'چ', 'پ', 'ج'];
 
 /** Dots shown per day cell before collapsing the rest into a +N marker */
 const MAX_DAY_DOTS = 2;
@@ -30,18 +24,11 @@ export function CalendarView() {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const { medications } = useMedicationContext();
 
-  // Generate calendar days (Jalali calendar, week starts Saturday)
-  const calendarDays = useMemo(() => {
-    const monthStart = startOfMonth(currentMonth);
-    const monthEnd = endOfMonth(currentMonth);
-    // Start week on Saturday (6)
-    const calStart = startOfWeek(monthStart, { weekStartsOn: 6 });
-    const calEnd = endOfWeek(monthEnd, { weekStartsOn: 6 });
-    return eachDayOfInterval({ start: calStart, end: calEnd });
-  }, [currentMonth]);
+  const calendarDays = useMemo(
+    () => getJalaliMonthGrid(currentMonth),
+    [currentMonth],
+  );
 
-  // Medication colors per day. Keyed by Gregorian date key so it lines up with
-  // how schedules and logs are stored.
   const dayMedicationColors = useMemo(() => {
     const map = new Map<string, string[]>();
     for (const day of calendarDays) {
@@ -89,7 +76,7 @@ export function CalendarView() {
 
           {/* Weekday headers */}
           <div className="grid grid-cols-7 mb-2">
-            {WEEKDAY_LABELS.map((label, i) => (
+            {JALALI_WEEKDAY_LABELS.map((label, i) => (
               <div
                 key={i}
                 className="text-center text-xs font-medium text-muted-foreground py-2"
@@ -121,11 +108,8 @@ export function CalendarView() {
                     isToday && !isSelected && 'bg-primary/5',
                   )}
                 >
-                  {/* Medication dots, capped at MAX_DAY_DOTS with the rest
-                      collapsed into a +N marker, because more dots than that
-                      do not fit a day cell on a phone.
-                      The row is always rendered so day numbers stay aligned
-                      across cells with and without medications. */}
+                  {/* Always rendered, so day numbers stay aligned across
+                      cells with and without medications */}
                   <div className="flex items-center justify-center gap-0.5 mb-0.5 h-2">
                     {colors.slice(0, MAX_DAY_DOTS).map((color, i) => (
                       <span
@@ -141,7 +125,6 @@ export function CalendarView() {
                     )}
                   </div>
 
-                  {/* Day number (Persian digits via format) */}
                   <span
                     className={cn(
                       'text-sm',

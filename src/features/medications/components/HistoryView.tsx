@@ -6,8 +6,6 @@ import {
   HISTORY_PERIODS,
   HISTORY_PERIOD_LABEL,
   filterByPeriod,
-  getMonthGridDates,
-  getWeekDates,
   indexByDateKey,
   summarisePeriod,
   summariseDay,
@@ -28,11 +26,13 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { fromDateKey, toDateKey } from '@/lib/date';
+import {
+  JALALI_WEEKDAY_LABELS,
+  getJalaliMonthGrid,
+  getJalaliWeek,
+} from '@/lib/jalali';
 import { cn } from '@/lib/utils';
 
-const WEEKDAY_LABELS = ['ش', 'ی', 'د', 'س', 'چ', 'پ', 'ج'];
-
-/** Group headings for medication lifecycle events */
 const EVENT_GROUP: Record<
   HistoryEventKind,
   { label: string; icon: LucideIcon; tone: string }
@@ -46,15 +46,9 @@ const EVENT_GROUP: Record<
   },
 };
 
-/** Order the groups appear in inside a day */
 const EVENT_ORDER: HistoryEventKind[] = ['added', 'dosage-change', 'removed'];
 
-/**
- * Two-segment donut drawn with plain SVG.
- *
- * A charting library would add tens of kilobytes to a PWA for what is two arcs
- * and a label, so the arcs are stroked circles with a dash offset instead.
- */
+/** Plain SVG rather than a chart library: this is two arcs and a label. */
 function AdherenceDonut({ taken, missed }: { taken: number; missed: number }) {
   const total = taken + missed;
   const size = 168;
@@ -73,7 +67,7 @@ function AdherenceDonut({ taken, missed }: { taken: number; missed: number }) {
         style={{ transform: 'rotate(-90deg)' }}
         aria-hidden="true"
       >
-        {/* Missed fills the remainder, so it sits underneath as the full ring */}
+        {/* Missed is the remainder, so it sits underneath as the full ring */}
         <circle
           cx={size / 2}
           cy={size / 2}
@@ -104,13 +98,6 @@ function AdherenceDonut({ taken, missed }: { taken: number; missed: number }) {
   );
 }
 
-/**
- * A labelled group of medication names.
- *
- * The status is stated once in the heading rather than repeated on every row,
- * so a day with several doses reads as a short list instead of a column of
- * badges.
- */
 function Group({
   label,
   icon: Icon,
@@ -210,8 +197,6 @@ function DayGroups({ day }: { day: HistoryDay }) {
 
   return (
     <div className="space-y-4">
-      {/* Lifecycle events first: they explain why the doses below start,
-          stop or change */}
       {EVENT_ORDER.map((kind) => {
         const events = eventsByKind.get(kind);
         if (!events || events.length === 0) return null;
@@ -280,7 +265,6 @@ function DayGroups({ day }: { day: HistoryDay }) {
   );
 }
 
-/** Stacked bar per weekday: taken below, missed above */
 function WeekChart({
   dates,
   byDate,
@@ -307,8 +291,7 @@ function WeekChart({
     };
   });
 
-  // Bars are scaled against the busiest day so the tallest always fills the
-  // track, whatever the absolute dose count happens to be
+  // Scaled against the busiest day so the tallest bar always fills the track
   const max = Math.max(1, ...columns.map((c) => c.total));
   const trackHeight = 96;
 
@@ -335,7 +318,6 @@ function WeekChart({
                 'cursor-not-allowed hover:bg-transparent',
             )}
           >
-            {/* Bar track, bars grow from the bottom */}
             <div
               className="w-full flex flex-col justify-end items-center"
               style={{ height: trackHeight }}
@@ -361,7 +343,7 @@ function WeekChart({
             </div>
 
             <span className="text-[11px] text-muted-foreground">
-              {WEEKDAY_LABELS[index]}
+              {JALALI_WEEKDAY_LABELS[index]}
             </span>
             <span
               className={cn(
@@ -380,7 +362,6 @@ function WeekChart({
   );
 }
 
-/** Jalali month grid with a per-day adherence dot */
 function MonthGrid({
   dates,
   byDate,
@@ -401,7 +382,7 @@ function MonthGrid({
   return (
     <div className="space-y-2">
       <div className="grid grid-cols-7">
-        {WEEKDAY_LABELS.map((label) => (
+        {JALALI_WEEKDAY_LABELS.map((label) => (
           <div
             key={label}
             className="text-center text-[11px] font-medium text-muted-foreground py-1"
@@ -421,7 +402,6 @@ function MonthGrid({
           const isFuture = dateKey > todayKey;
           const isSelected = dateKey === selectedKey;
 
-          // One dot per day, coloured by how the day went
           const tone =
             total === 0
               ? null
@@ -488,18 +468,16 @@ export function HistoryView() {
   const summary = useMemo(() => summarisePeriod(periodDays), [periodDays]);
   const byDate = useMemo(() => indexByDateKey(history), [history]);
 
-  const weekDates = useMemo(() => getWeekDates(now), [now]);
-  const monthDates = useMemo(() => getMonthGridDates(now), [now]);
+  const weekDates = useMemo(() => getJalaliWeek(now), [now]);
+  const monthDates = useMemo(() => getJalaliMonthGrid(now), [now]);
 
   const changePeriod = (next: HistoryPeriod) => {
     setPeriod(next);
-    // Selection belongs to the previous view's date range
     setSelectedKey(null);
   };
 
-  // In the week and month views nothing is selected until the user picks a day.
-  // Defaulting to today there would show a "today" card under a chart that is
-  // about the whole period.
+  // Week and month select nothing until the user picks a day: defaulting to
+  // today would show a "today" card under a chart about the whole period
   const effectiveKey = period === 'today' ? todayKey : selectedKey;
   const selectedDay = effectiveKey ? byDate.get(effectiveKey) : undefined;
   const showDetail = period === 'today' || selectedKey !== null;
@@ -513,7 +491,6 @@ export function HistoryView() {
         </p>
       </div>
 
-      {/* Period selector */}
       <div className="flex items-center gap-1 p-1 rounded-lg bg-muted w-fit">
         {HISTORY_PERIODS.map((option) => (
           <Button
@@ -529,7 +506,7 @@ export function HistoryView() {
         ))}
       </div>
 
-      {/* Overview: a bar per weekday, or a month grid. Today needs neither. */}
+      {/* Today needs no picker */}
       {period !== 'today' && (
         <Card>
           <CardHeader className="pb-3">
@@ -562,7 +539,6 @@ export function HistoryView() {
         </Card>
       )}
 
-      {/* Detail for the selected day, only once there is a day to detail */}
       {showDetail && effectiveKey && (
         <Card>
           <CardHeader className="pb-2">
@@ -582,7 +558,6 @@ export function HistoryView() {
         </Card>
       )}
 
-      {/* Counts */}
       <Card>
         <CardHeader>
           <CardTitle className="text-base">
@@ -607,7 +582,6 @@ export function HistoryView() {
         </CardContent>
       </Card>
 
-      {/* Adherence */}
       <Card>
         <CardHeader>
           <CardTitle className="text-base">پایبندی به مصرف</CardTitle>
