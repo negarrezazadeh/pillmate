@@ -28,6 +28,21 @@ export function getNotificationPermission(): NotificationPermission | 'unsupport
   return Notification.permission;
 }
 
+const MUTE_KEY = 'pillmate_notifications_muted';
+
+/**
+ * A global mute, separate from the per-medication reminder mode. That setting
+ * chooses notification vs alarm for a specific medication; this one silences
+ * every notification the app sends, regardless of that choice.
+ */
+export function isMuted(): boolean {
+  return localStorage.getItem(MUTE_KEY) === 'true';
+}
+
+export function setMuted(muted: boolean): void {
+  localStorage.setItem(MUTE_KEY, String(muted));
+}
+
 const BASE_OPTIONS: NotificationOptions = {
   icon: '/pwa-192x192.png',
   badge: '/pwa-192x192.png',
@@ -53,7 +68,12 @@ export async function sendNotification(
     return false;
   }
 
-  const merged = { ...BASE_OPTIONS, ...options };
+  // Global mute overrides whatever the caller asked for
+  const merged = {
+    ...BASE_OPTIONS,
+    ...options,
+    ...(isMuted() ? { silent: true } : {}),
+  };
 
   if ('serviceWorker' in navigator) {
     try {

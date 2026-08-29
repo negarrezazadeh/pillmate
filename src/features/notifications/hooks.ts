@@ -1,7 +1,6 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { format } from 'date-fns-jalali';
 import { useMedicationContext } from '../medications/context';
-import { getCurrentDay } from '../medications/hooks';
 import {
   DOSAGE_TREND_LABEL,
   formatDaysUntil,
@@ -9,6 +8,12 @@ import {
   getDosageTrend,
 } from '../medications/dosage';
 import { isMedicationScheduledOn } from '../medications/schedule';
+import {
+  findDueReminder,
+  getReminder,
+  getReminderTimes,
+  reminderKey,
+} from '../medications/reminder';
 import {
   DOSE_WINDOW_MINUTES,
   formatMinutes,
@@ -20,70 +25,87 @@ import {
   sendNotification,
   playAlarmSound,
   getNotificationPermission,
+  isMuted,
 } from './notification-service';
 
 /**
- * Hook that checks medication times every minute and sends notifications + plays alarm
+ * Fires each medication's reminders: the dose time, plus any snooze repeats.
+ *
+ * Matching is by time window rather than by comparing HH:mm strings, because a
+ * snooze lands at an arbitrary offset that no scheduled time string contains.
  */
 export function useNotificationChecker() {
   const { medications, intakeLogs, addIntakeLog } = useMedicationContext();
-  const lastCheckedRef = useRef<string>('');
+  // One entry per reminder already fired, so a repeat never doubles up
+  const firedRef = useRef<Set<string>>(new Set());
   const alarmRef = useRef<{ stop: () => void } | null>(null);
 
   const checkMedications = useCallback(() => {
     const now = new Date();
-    const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
-    const todayDateStr = toDateKey(now);
-    const today = getCurrentDay();
+    const todayKey = toDateKey(now);
 
-    // Avoid checking same minute twice
-    const checkKey = `${todayDateStr}-${currentTime}`;
-    if (lastCheckedRef.current === checkKey) return;
-    lastCheckedRef.current = checkKey;
+    for (const med of medications) {
+      if (!isMedicationScheduledOn(med, now)) continue;
 
-    // Get medications that should be taken now
-    const dueMedications = medications.filter(
-      (med) => med.isActive && med.days.includes(today) && med.times.includes(currentTime),
-    );
+      const reminder = getReminder(med);
+      if (!reminder.enabled) continue;
 
-    if (dueMedications.length === 0) return;
+      for (const time of med.times) {
+        const scheduledTime = `${todayKey}T${time}:00`;
+        const log = intakeLogs.find(
+          (l) => l.medicationId === med.id && l.scheduledTime === scheduledTime,
+        );
+        if (log?.status === 'taken') continue;
 
-    // Check which ones haven't been taken yet
-    for (const med of dueMedications) {
-      const scheduledTime = `${todayDateStr}T${currentTime}:00`;
-      const existingLog = intakeLogs.find(
-        (log) =>
-          log.medicationId === med.id && log.scheduledTime === scheduledTime,
-      );
-
-      // If already taken, skip
-      if (existingLog?.status === 'taken') continue;
-
-      // Create log if doesn't exist
-      if (!existingLog) {
-        addIntakeLog({
-          id: crypto.randomUUID(),
-          medicationId: med.id,
-          scheduledTime,
-          takenAt: null,
-          status: 'pending',
+        const scheduled = getScheduledDate(todayKey, time);
+        const state = getDoseState({
+          scheduled,
+          log,
+          createdAt: med.createdAt,
+          now,
         });
-      }
+        // Nothing to announce for a slot that predates the medication
+        if (state === 'ignored') continue;
 
-      // Tapping this brings the app forward, handled by the service worker.
-      // Marking the dose taken happens in the app, not from the notification:
-      // a worker notification has no page-side click handler.
-      void sendNotification(`وقت مصرف ${med.name}`, {
-        body: `دوز: ${med.dosage}\nساعت ${currentTime}`,
-        tag: `med-${med.id}-${currentTime}`,
-        requireInteraction: true,
-      });
+        const index = findDueReminder(getReminderTimes(scheduled, reminder), now);
+        if (index === -1) continue;
 
-      // Play alarm sound
-      if (alarmRef.current) {
-        alarmRef.current.stop();
+        const key = reminderKey(med.id, scheduledTime, index);
+        if (firedRef.current.has(key)) continue;
+        firedRef.current.add(key);
+
+        if (!log) {
+          addIntakeLog({
+            id: crypto.randomUUID(),
+            medicationId: med.id,
+            scheduledTime,
+            takenAt: null,
+            status: 'pending',
+          });
+        }
+
+        // Tapping brings the app forward, handled by the service worker: a
+        // worker notification has no page-side click handler.
+        const isSnooze = index > 0;
+        void sendNotification(
+          isSnooze ? `یادآور مجدد: ${med.name}` : `وقت مصرف ${med.name}`,
+          {
+            body: isSnooze
+              ? `دوز ${med.dosage} برای ساعت ${time} هنوز ثبت نشده است.`
+              : `دوز: ${med.dosage}\nساعت ${time}`,
+            tag: `med-${med.id}-${time}`,
+            requireInteraction: true,
+            // Without this the OS uses its default channel, which has a sound.
+            // Setting it is what actually makes the two modes differ.
+            silent: reminder.mode === 'notification',
+          },
+        );
+
+        if (reminder.mode === 'alarm' && !isMuted()) {
+          alarmRef.current?.stop();
+          alarmRef.current = playAlarmSound();
+        }
       }
-      alarmRef.current = playAlarmSound();
     }
   }, [medications, intakeLogs, addIntakeLog]);
 
@@ -170,11 +192,12 @@ export function useMissedDoseChecker() {
 
     const now = new Date();
     const todayKey = toDateKey(now);
-    const today = getCurrentDay();
 
     for (const med of medications) {
       if (!isMedicationScheduledOn(med, now)) continue;
-      if (!med.days.includes(today)) continue;
+      // Reminders off means silent, including the missed-dose warning
+      const reminder = getReminder(med);
+      if (!reminder.enabled) continue;
 
       for (const time of med.times) {
         const scheduledTime = `${todayKey}T${time}:00`;
@@ -197,11 +220,12 @@ export function useMissedDoseChecker() {
         if (announcedRef.current.has(doseKey)) continue;
         announcedRef.current.add(doseKey);
 
-        sendNotification(`${med.name} مصرف نشد`, {
+        void sendNotification(`${med.name} مصرف نشد`, {
           body: `${formatMinutes(DOSE_WINDOW_MINUTES)} از ساعت ${time} گذشت و این دوز ثبت نشد.`,
           // A stable tag means a reload replaces the old notification instead of
           // stacking a duplicate
           tag: `dose-missed-${doseKey}-${todayKey}`,
+          silent: reminder.mode === 'notification',
         });
       }
     }

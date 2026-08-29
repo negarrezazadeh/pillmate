@@ -1,27 +1,42 @@
 import { useEffect, useState } from 'react';
-import { Bell, BellOff, BellRing } from 'lucide-react';
+import { Bell, BellOff, BellRing, Volume2, VolumeX } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
 import {
   getNotificationPermission,
+  isMuted,
   requestNotificationPermission,
   sendNotification,
+  setMuted,
 } from '../notification-service';
 
 type Status = NotificationPermission | 'unsupported';
 
 /**
- * Compact bell for the mobile header, where the sidebar's NotificationPermission
- * is hidden and there is otherwise no way to grant permission.
+ * Bell for the mobile header.
  *
- * When permission is already granted, tapping fires a real notification so the
- * user can confirm reminders actually arrive on their device.
+ * When permission has not been granted yet, tapping requests it - this is the
+ * only place to do so on mobile, since the sidebar with the same control is
+ * desktop-only. Once granted, tapping opens the mute dialog instead of firing a
+ * test notification on every tap.
  */
 export function NotificationBell() {
   const [status, setStatus] = useState<Status>('default');
+  const [muted, setMutedState] = useState(false);
+  const [dialogOpen, setDialogOpen] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
   useEffect(() => {
     setStatus(getNotificationPermission());
+    setMutedState(isMuted());
   }, []);
 
   useEffect(() => {
@@ -56,7 +71,16 @@ export function NotificationBell() {
       return;
     }
 
-    // Already granted: prove it works
+    // Already granted: open settings instead of firing another test notification
+    setDialogOpen(true);
+  };
+
+  const toggleMute = (value: boolean) => {
+    setMuted(value);
+    setMutedState(value);
+  };
+
+  const sendTest = async () => {
     const shown = await sendNotification('یادآور فعال است', {
       body: 'این یک پیام آزمایشی است.',
       tag: 'test-notification',
@@ -65,7 +89,13 @@ export function NotificationBell() {
   };
 
   const Icon =
-    status === 'granted' ? BellRing : status === 'default' ? Bell : BellOff;
+    status !== 'granted'
+      ? status === 'default'
+        ? Bell
+        : BellOff
+      : muted
+        ? BellOff
+        : BellRing;
 
   return (
     <div className="relative">
@@ -74,21 +104,20 @@ export function NotificationBell() {
         size="icon"
         onClick={handleClick}
         aria-label={
-          status === 'granted' ? 'ارسال پیام آزمایشی' : 'فعال‌سازی یادآور'
+          status === 'granted' ? 'تنظیمات یادآور' : 'فعال‌سازی یادآور'
         }
       >
         <Icon
           className={
-            status === 'granted'
-              ? 'h-5 w-5 text-green-600'
-              : status === 'default'
-                ? 'h-5 w-5'
-                : 'h-5 w-5 text-muted-foreground'
+            status !== 'granted'
+              ? 'h-5 w-5 text-muted-foreground'
+              : muted
+                ? 'h-5 w-5 text-muted-foreground'
+                : 'h-5 w-5 text-green-600'
           }
         />
       </Button>
 
-      {/* The OS banner can be easy to miss, so confirm in-app as well */}
       {message && (
         <div
           role="status"
@@ -97,6 +126,43 @@ export function NotificationBell() {
           {message}
         </div>
       )}
+
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>تنظیمات یادآور</DialogTitle>
+            <DialogDescription>
+              یادآور برای شما فعال است. می‌توانید صدای آن را خاموش کنید.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex items-center justify-between gap-3 rounded-lg border p-3">
+            <div className="flex items-center gap-2.5">
+              {muted ? (
+                <VolumeX className="h-4 w-4 text-muted-foreground" />
+              ) : (
+                <Volume2 className="h-4 w-4 text-primary" />
+              )}
+              <div>
+                <Label htmlFor="mute-notifications">بی‌صدا</Label>
+                <p className="text-xs text-muted-foreground">
+                  در هر دو حالت نوتیفیکیشن و آلارم، صدا پخش نمی‌شود.
+                </p>
+              </div>
+            </div>
+            <Switch
+              id="mute-notifications"
+              checked={muted}
+              onCheckedChange={toggleMute}
+            />
+          </div>
+
+          <Button variant="outline" onClick={sendTest} className="gap-1.5">
+            <Bell className="h-4 w-4" />
+            ارسال پیام آزمایشی
+          </Button>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

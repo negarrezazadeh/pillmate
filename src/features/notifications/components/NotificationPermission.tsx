@@ -1,17 +1,21 @@
 import { useState, useEffect } from 'react';
-import { Bell, BellOff, CheckCircle } from 'lucide-react';
+import { Bell, BellOff, CheckCircle, Volume2, VolumeX } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
   getNotificationPermission,
+  isMuted,
   requestNotificationPermission,
+  setMuted,
 } from '../notification-service';
 
 export function NotificationPermission() {
   const [permission, setPermission] = useState<NotificationPermission | 'unsupported'>('default');
+  const [muted, setMutedState] = useState(false);
 
   useEffect(() => {
     setPermission(getNotificationPermission());
+    setMutedState(isMuted());
   }, []);
 
   const handleRequest = async () => {
@@ -19,12 +23,33 @@ export function NotificationPermission() {
     setPermission(result);
   };
 
+  const toggleMute = () => {
+    const next = !muted;
+    setMuted(next);
+    setMutedState(next);
+  };
+
   if (permission === 'granted') {
     return (
-      <Badge variant="secondary" className="w-full justify-center gap-1.5 py-1.5 bg-green-50 text-green-700 dark:bg-green-900/50 dark:text-green-300">
-        <CheckCircle className="h-3.5 w-3.5" />
-        یادآور فعال است
-      </Badge>
+      <div className="space-y-1.5">
+        <Badge variant="secondary" className="w-full justify-center gap-1.5 py-1.5 bg-green-50 text-green-700 dark:bg-green-900/50 dark:text-green-300">
+          <CheckCircle className="h-3.5 w-3.5" />
+          یادآور فعال است
+        </Badge>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={toggleMute}
+          className="w-full gap-1.5 text-muted-foreground"
+        >
+          {muted ? (
+            <VolumeX className="h-3.5 w-3.5" />
+          ) : (
+            <Volume2 className="h-3.5 w-3.5" />
+          )}
+          {muted ? 'صدا خاموش است' : 'خاموش کردن صدا'}
+        </Button>
+      </div>
     );
   }
 
