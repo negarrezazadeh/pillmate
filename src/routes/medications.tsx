@@ -106,8 +106,11 @@ function MedicationsPage() {
         </div>
       )}
 
-      {/* Form dialog */}
+      {/* Form dialog. The key remounts the form whenever the edited medication
+          changes, so its useState initializers re-read the new values instead
+          of keeping the state from the first open. */}
       <MedicationForm
+        key={editingMedication?.id ?? 'new'}
         medication={editingMedication}
         open={showForm}
         onSave={handleSave}
