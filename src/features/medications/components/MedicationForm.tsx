@@ -30,7 +30,6 @@ export function MedicationForm({ medication, open, onSave, onCancel }: Medicatio
   const [name, setName] = useState(medication?.name ?? '');
   const [dosage, setDosage] = useState(medication?.dosage ?? '');
   const [color, setColor] = useState(medication?.color ?? COLOR_PALETTE[0]);
-  const [timesPerWeek, setTimesPerWeek] = useState(medication?.timesPerWeek ?? 7);
   const [days, setDays] = useState<DayOfWeek[]>(medication?.days ?? [...DAYS_OF_WEEK.map((d) => d.value)]);
   const [times, setTimes] = useState<string[]>(medication?.times ?? ['08:00']);
   const [notes, setNotes] = useState(medication?.notes ?? '');
@@ -96,7 +95,6 @@ export function MedicationForm({ medication, open, onSave, onCancel }: Medicatio
       name: name.trim(),
       dosage: dosage.trim(),
       color,
-      timesPerWeek,
       days,
       times,
       notes: notes.trim(),
@@ -258,18 +256,6 @@ export function MedicationForm({ medication, open, onSave, onCancel }: Medicatio
           </div>
 
           {/* Times per week */}
-          <div className="space-y-2">
-            <Label htmlFor="med-freq">تعداد مصرف در هفته</Label>
-            <Input
-              id="med-freq"
-              type="number"
-              min={1}
-              max={21}
-              value={timesPerWeek}
-              onChange={(e) => setTimesPerWeek(Number(e.target.value))}
-            />
-          </div>
-
           {/* Days */}
           <div className="space-y-2">
             <Label>روزهای مصرف</Label>

@@ -19,7 +19,7 @@ import {
   CalendarPlus,
   BellOff,
 } from 'lucide-react';
-import { getMedicationStartKey } from '../schedule';
+import { getDosesPerWeek, getMedicationStartKey } from '../schedule';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardAction } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -86,7 +86,7 @@ export function MedicationCard({ medication, onEdit, onDelete }: MedicationCardP
       <CardContent className="space-y-3">
         {/* Dosage */}
         <p className="text-sm text-muted-foreground">
-          دوز: <span className="font-medium text-foreground">{medication.dosage}</span>
+          دوز: <span className="font-medium text-foreground">{medication.dosage} میلی گرم</span>
         </p>
 
         {/* Upcoming dosage change */}
@@ -143,7 +143,7 @@ export function MedicationCard({ medication, onEdit, onDelete }: MedicationCardP
         {/* Badges */}
         <div className="flex items-center justify-between">
           <Badge variant="secondary">
-            {medication.timesPerWeek} بار در هفته
+            {getDosesPerWeek(medication)} بار در هفته
           </Badge>
           <Badge variant={medication.isActive ? 'default' : 'outline'}>
             {medication.isActive ? 'فعال' : 'غیرفعال'}

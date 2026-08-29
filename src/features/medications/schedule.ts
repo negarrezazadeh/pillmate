@@ -38,6 +38,11 @@ export function isMedicationScheduledOn(
   return toDateKey(date) >= getMedicationStartKey(medication);
 }
 
+/** Derived from the schedule, so it cannot disagree with it. */
+export function getDosesPerWeek(medication: Medication): number {
+  return medication.days.length * medication.times.length;
+}
+
 export function medicationsScheduledOn(
   medications: Medication[],
   date: Date,

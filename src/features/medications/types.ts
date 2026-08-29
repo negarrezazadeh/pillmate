@@ -37,7 +37,6 @@ export interface Medication {
   name: string;
   dosage: string;
   color: string;
-  timesPerWeek: number;
   days: DayOfWeek[];
   times: string[]; // HH:mm format
   notes: string;
