@@ -6,11 +6,11 @@ import {
   DEFAULT_REMINDER,
   SNOOZE_MINUTE_PRESETS,
 } from '../types';
-import type { ReminderSettings } from '../types';
+import type { ReminderMode, ReminderSettings } from '../types';
 import { getReminder } from '../reminder';
 import { DOSAGE_TREND_LABEL, getDosageTrend, toDateKey } from '../dosage';
 import { getMedicationStartKey } from '../schedule';
-import { AlarmClock, ArrowDown, ArrowUp, Plus, X } from 'lucide-react';
+import { AlarmClock, ArrowDown, ArrowUp, Bell, Plus, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { JalaliDatePicker } from '@/components/JalaliDatePicker';
 import { ColorPicker } from '@/components/ColorPicker';
@@ -49,6 +49,7 @@ export function MedicationForm({ medication, open, onSave, onCancel }: Medicatio
 
   const initialReminder = medication ? getReminder(medication) : DEFAULT_REMINDER;
   const [remindEnabled, setRemindEnabled] = useState(initialReminder.enabled);
+  const [remindMode, setRemindMode] = useState<ReminderMode>(initialReminder.mode);
   const [snoozeEnabled, setSnoozeEnabled] = useState(
     initialReminder.snooze.enabled,
   );
@@ -83,10 +84,7 @@ export function MedicationForm({ medication, open, onSave, onCancel }: Medicatio
 
   const resolvedReminder: ReminderSettings = {
     enabled: remindEnabled,
-    // The notification/alarm choice was removed from the form: every
-    // reminder now carries the device's default sound, and the only way to
-    // silence it is the central mute switch on the bell icon.
-    mode: 'alarm',
+    mode: remindMode,
     snooze: {
       enabled: snoozeEnabled,
       minutes: clampNumber(snoozeMinutes, 1, 180, DEFAULT_REMINDER.snooze.minutes),
@@ -209,15 +207,38 @@ export function MedicationForm({ medication, open, onSave, onCancel }: Medicatio
 
             {remindEnabled && (
               <div className="space-y-3 pt-1">
-                {/* No notification/alarm choice here: the notification always
-                    carries the device's default sound. Whether the user hears
-                    anything at all is controlled centrally by the mute switch
-                    on the bell icon, not per medication. */}
-                <p className="text-xs text-muted-foreground flex items-center gap-1.5">
-                  <AlarmClock className="h-3.5 w-3.5" />
-                  نوتیفیکیشن با صدا نمایش داده می‌شود. برای قطع صدا از آیکون
-                  زنگ در بالای صفحه استفاده کنید.
-                </p>
+                <div className="space-y-2">
+                  <Label>حالت یادآوری</Label>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant={remindMode === 'notification' ? 'default' : 'outline'}
+                      onClick={() => setRemindMode('notification')}
+                      aria-pressed={remindMode === 'notification'}
+                      className="gap-1.5"
+                    >
+                      <Bell className="h-4 w-4" />
+                      نوتیفیکیشن
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant={remindMode === 'alarm' ? 'default' : 'outline'}
+                      onClick={() => setRemindMode('alarm')}
+                      aria-pressed={remindMode === 'alarm'}
+                      className="gap-1.5"
+                    >
+                      <AlarmClock className="h-4 w-4" />
+                      آلارم
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {remindMode === 'alarm'
+                      ? 'نوتیفیکیشن با صدای دستگاه، به‌همراه صدای هشدار برنامه در صورت باز بودن.'
+                      : 'فقط نوتیفیکیشن نمایش داده می‌شود.'}
+                  </p>
+                </div>
 
                 {/* Snooze */}
                 <div className="rounded-md bg-muted/50 p-2.5 space-y-3">
