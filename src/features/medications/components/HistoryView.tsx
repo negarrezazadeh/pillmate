@@ -74,7 +74,7 @@ function AdherenceDonut({ taken, missed }: { taken: number; missed: number }) {
           r={radius}
           fill="none"
           strokeWidth={stroke}
-          className={total === 0 ? 'stroke-muted' : 'stroke-destructive/70'}
+          className={total === 0 ? 'stroke-muted' : 'stroke-rose-500'}
         />
         {taken > 0 && (
           <circle
@@ -85,7 +85,7 @@ function AdherenceDonut({ taken, missed }: { taken: number; missed: number }) {
             strokeWidth={stroke}
             strokeLinecap="butt"
             strokeDasharray={`${takenLength} ${circumference - takenLength}`}
-            className="stroke-green-600"
+            className="stroke-emerald-500"
           />
         )}
       </svg>
@@ -175,7 +175,7 @@ function DoseTime({ dose }: { dose: HistoryDose }) {
       <Clock className="h-3.5 w-3.5" />
       <span>{dose.time}</span>
       {takenAtTime && takenAtTime !== dose.time && (
-        <span className="text-green-700 dark:text-green-400">
+        <span className="text-emerald-700 dark:text-emerald-400">
           ({takenAtTime})
         </span>
       )}
@@ -226,7 +226,7 @@ function DayGroups({ day }: { day: HistoryDay }) {
         <Group
           label="مصرف شده"
           icon={CheckCircle2}
-          tone="text-green-600"
+          tone="text-emerald-500"
           count={taken.length}
         >
           {taken.map((dose) => (
@@ -334,7 +334,7 @@ function WeekChart({
                   )}
                   {column.taken > 0 && (
                     <div
-                      className="w-full bg-green-600"
+                      className="w-full bg-emerald-500"
                       style={{ height: Math.max(3, takenHeight) }}
                     />
                   )}
@@ -406,7 +406,7 @@ function MonthGrid({
             total === 0
               ? null
               : counts.missed === 0
-                ? 'bg-green-600'
+                ? 'bg-emerald-500'
                 : counts.taken === 0
                   ? 'bg-destructive'
                   : 'bg-orange-500';
@@ -569,7 +569,7 @@ export function HistoryView() {
 
           <div className="space-y-3 w-full sm:w-auto">
             <div className="flex items-center gap-2.5">
-              <span className="w-3 h-3 rounded-sm bg-green-600 shrink-0" />
+              <span className="w-3 h-3 rounded-sm bg-emerald-500 shrink-0" />
               <span className="text-sm text-muted-foreground">مصرف‌شده</span>
               <span className="text-sm font-bold">{summary.taken}</span>
             </div>
@@ -614,7 +614,7 @@ export function HistoryView() {
                   className={cn(
                     'h-full rounded-full transition-all',
                     summary.adherence >= 80
-                      ? 'bg-green-600'
+                      ? 'bg-emerald-500'
                       : summary.adherence >= 50
                         ? 'bg-orange-500'
                         : 'bg-destructive',

@@ -130,7 +130,7 @@ function DoseRow({
         {isTaken ? (
           <Badge
             variant="secondary"
-            className="bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300 gap-1"
+            className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300 gap-1"
           >
             <Check className="h-3 w-3" />
             {takenAtTime ?? 'مصرف شد'}
@@ -280,7 +280,7 @@ export function DailyMedications() {
     {
       state: 'taken' as const,
       doses: taken,
-      icon: <CheckCircle2 className="h-3.5 w-3.5 text-green-600" />,
+      icon: <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />,
       tone: undefined,
     },
   ].filter((section) => section.doses.length > 0);
@@ -304,7 +304,7 @@ export function DailyMedications() {
       <CardContent className="space-y-3">
         {taken.length === doses.length && (
           <div className="flex items-center justify-center gap-2 py-6 text-sm text-muted-foreground">
-            <CheckCircle2 className="h-4 w-4 text-green-600" />
+            <CheckCircle2 className="h-4 w-4 text-emerald-500" />
             همه داروهای امروز مصرف شد
           </div>
         )}

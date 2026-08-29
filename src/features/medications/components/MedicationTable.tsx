@@ -63,7 +63,7 @@ export function MedicationTable() {
         <Card size="sm">
           <CardContent>
             <p className="text-sm text-muted-foreground">داروهای فعال</p>
-            <p className="text-2xl font-bold text-green-600 dark:text-green-400">
+            <p className="text-2xl font-bold text-emerald-500 dark:text-emerald-400">
               {stats.activeMedications}
             </p>
           </CardContent>
@@ -132,7 +132,7 @@ export function MedicationTable() {
                         {med.isActive ? (
                           <Badge
                             variant="secondary"
-                            className="bg-green-50 text-green-700 dark:bg-green-900/50 dark:text-green-300 gap-1"
+                            className="bg-emerald-50 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300 gap-1"
                           >
                             <CheckCircle className="h-3 w-3" />
                             فعال

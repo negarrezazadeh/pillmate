@@ -96,7 +96,7 @@ export function MedicationCard({ medication, onEdit, onDelete }: MedicationCardP
               {changeTrend === 'increase' ? (
                 <ArrowUp className="h-3.5 w-3.5 text-orange-600" />
               ) : changeTrend === 'decrease' ? (
-                <ArrowDown className="h-3.5 w-3.5 text-green-600" />
+                <ArrowDown className="h-3.5 w-3.5 text-emerald-500" />
               ) : (
                 <CalendarClock className="h-3.5 w-3.5 text-primary" />
               )}
