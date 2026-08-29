@@ -26,7 +26,7 @@ import {
  * Hook that checks medication times every minute and sends notifications + plays alarm
  */
 export function useNotificationChecker() {
-  const { medications, intakeLogs, addIntakeLog, updateIntakeLog } = useMedicationContext();
+  const { medications, intakeLogs, addIntakeLog } = useMedicationContext();
   const lastCheckedRef = useRef<string>('');
   const alarmRef = useRef<{ stop: () => void } | null>(null);
 
@@ -70,32 +70,14 @@ export function useNotificationChecker() {
         });
       }
 
-      // Send notification
-      if (getNotificationPermission() === 'granted') {
-        const notification = sendNotification(`وقت مصرف ${med.name}`, {
-          body: `دوز: ${med.dosage}\nساعت ${currentTime}`,
-          tag: `med-${med.id}-${currentTime}`,
-          requireInteraction: true,
-        });
-
-        // Handle notification click - mark as taken
-        if (notification) {
-          notification.onclick = () => {
-            const log = intakeLogs.find(
-              (l) =>
-                l.medicationId === med.id && l.scheduledTime === scheduledTime,
-            );
-            if (log && log.status !== 'taken') {
-              updateIntakeLog({
-                ...log,
-                status: 'taken',
-                takenAt: new Date().toISOString(),
-              });
-            }
-            notification.close();
-          };
-        }
-      }
+      // Tapping this brings the app forward, handled by the service worker.
+      // Marking the dose taken happens in the app, not from the notification:
+      // a worker notification has no page-side click handler.
+      void sendNotification(`وقت مصرف ${med.name}`, {
+        body: `دوز: ${med.dosage}\nساعت ${currentTime}`,
+        tag: `med-${med.id}-${currentTime}`,
+        requireInteraction: true,
+      });
 
       // Play alarm sound
       if (alarmRef.current) {
@@ -103,7 +85,7 @@ export function useNotificationChecker() {
       }
       alarmRef.current = playAlarmSound();
     }
-  }, [medications, intakeLogs, addIntakeLog, updateIntakeLog]);
+  }, [medications, intakeLogs, addIntakeLog]);
 
   useEffect(() => {
     // Check immediately

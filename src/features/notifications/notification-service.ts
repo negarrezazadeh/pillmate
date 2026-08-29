@@ -28,20 +28,49 @@ export function getNotificationPermission(): NotificationPermission | 'unsupport
   return Notification.permission;
 }
 
+const BASE_OPTIONS: NotificationOptions = {
+  icon: '/pwa-192x192.png',
+  badge: '/pwa-192x192.png',
+  dir: 'rtl',
+  lang: 'fa',
+};
+
 /**
- * Send a browser notification
+ * Shows a notification, preferring the service worker.
+ *
+ * `new Notification()` throws "Illegal constructor" on Android, where the only
+ * supported path is ServiceWorkerRegistration.showNotification. The constructor
+ * stays as a fallback for desktop browsers without an active worker.
+ *
+ * Clicks are handled by the worker (see public/sw-notification-click.js), not
+ * here, because a page-side onclick never fires for a worker notification.
  */
-export function sendNotification(title: string, options?: NotificationOptions): Notification | null {
+export async function sendNotification(
+  title: string,
+  options?: NotificationOptions,
+): Promise<boolean> {
   if (!('Notification' in window) || Notification.permission !== 'granted') {
-    return null;
+    return false;
   }
 
-  return new Notification(title, {
-    icon: '/favicon.svg',
-    dir: 'rtl',
-    lang: 'fa',
-    ...options,
-  });
+  const merged = { ...BASE_OPTIONS, ...options };
+
+  if ('serviceWorker' in navigator) {
+    try {
+      const registration = await navigator.serviceWorker.ready;
+      await registration.showNotification(title, merged);
+      return true;
+    } catch {
+      // Fall through to the constructor below
+    }
+  }
+
+  try {
+    new Notification(title, merged);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 /**

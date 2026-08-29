@@ -44,6 +44,8 @@ const config = defineConfig({
         ],
       },
       workbox: {
+        // Adds the notificationclick handler to the generated worker
+        importScripts: ['sw-notification-click.js'],
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
         runtimeCaching: [
           {
