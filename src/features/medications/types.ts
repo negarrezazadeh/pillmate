@@ -26,6 +26,33 @@ export interface DosageChange {
   notifiedOffsets: number[];
 }
 
+/**
+ * `notification` shows a silent OS notification. `alarm` shows the same
+ * notification and additionally plays a sound, which needs the app to be open.
+ */
+export type ReminderMode = 'notification' | 'alarm';
+
+export interface ReminderSettings {
+  /** When false, this medication produces no reminders at all */
+  enabled: boolean;
+  mode: ReminderMode;
+  snooze: {
+    enabled: boolean;
+    /** Gap between repeats */
+    minutes: number;
+    /** How many times to repeat after the first reminder */
+    repeat: number;
+  };
+}
+
+export const DEFAULT_REMINDER: ReminderSettings = {
+  enabled: true,
+  mode: 'notification',
+  snooze: { enabled: false, minutes: 10, repeat: 2 },
+};
+
+export const SNOOZE_MINUTE_PRESETS = [5, 10, 15, 30] as const;
+
 /** Record of a dosage that was replaced by a scheduled change */
 export interface DosageHistoryEntry {
   dosage: string;
@@ -51,6 +78,8 @@ export interface Medication {
    * compatibility - see getMedicationStartKey().
    */
   startDate?: string;
+  /** Reminder preferences. Absent on records saved before this existed. */
+  reminder?: ReminderSettings;
   /** Optional planned dosage change. Null/undefined when none is scheduled. */
   dosageChange?: DosageChange | null;
   /** Previous dosages, appended whenever a scheduled change is applied */

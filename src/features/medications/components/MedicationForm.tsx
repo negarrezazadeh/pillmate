@@ -1,9 +1,16 @@
 import { useState } from 'react';
 import type { DayOfWeek, Medication } from '../types';
-import { COLOR_PALETTE, DAYS_OF_WEEK } from '../types';
+import {
+  COLOR_PALETTE,
+  DAYS_OF_WEEK,
+  DEFAULT_REMINDER,
+  SNOOZE_MINUTE_PRESETS,
+} from '../types';
+import type { ReminderMode, ReminderSettings } from '../types';
+import { getReminder } from '../reminder';
 import { DOSAGE_TREND_LABEL, getDosageTrend, toDateKey } from '../dosage';
 import { getMedicationStartKey } from '../schedule';
-import { ArrowDown, ArrowUp, Plus, X } from 'lucide-react';
+import { AlarmClock, ArrowDown, ArrowUp, Bell, Plus, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { JalaliDatePicker } from '@/components/JalaliDatePicker';
 import { ColorPicker } from '@/components/ColorPicker';
@@ -40,6 +47,20 @@ export function MedicationForm({ medication, open, onSave, onCancel }: Medicatio
     medication ? getMedicationStartKey(medication) : toDateKey(new Date()),
   );
 
+  const initialReminder = medication ? getReminder(medication) : DEFAULT_REMINDER;
+  const [remindEnabled, setRemindEnabled] = useState(initialReminder.enabled);
+  const [remindMode, setRemindMode] = useState<ReminderMode>(initialReminder.mode);
+  const [snoozeEnabled, setSnoozeEnabled] = useState(
+    initialReminder.snooze.enabled,
+  );
+  // Strings so the fields can be emptied while typing
+  const [snoozeMinutes, setSnoozeMinutes] = useState(
+    String(initialReminder.snooze.minutes),
+  );
+  const [snoozeRepeat, setSnoozeRepeat] = useState(
+    String(initialReminder.snooze.repeat),
+  );
+
   // Planned dosage change. An already-applied change is treated as "no pending
   // change", so editing a medication doesn't resurrect an old one.
   const pendingChange =
@@ -54,6 +75,22 @@ export function MedicationForm({ medication, open, onSave, onCancel }: Medicatio
   const [remindChange, setRemindChange] = useState(
     pendingChange ? pendingChange.remind !== false : true,
   );
+
+  const clampNumber = (raw: string, min: number, max: number, fallback: number) => {
+    const parsed = Number.parseInt(raw, 10);
+    if (Number.isNaN(parsed)) return fallback;
+    return Math.min(max, Math.max(min, parsed));
+  };
+
+  const resolvedReminder: ReminderSettings = {
+    enabled: remindEnabled,
+    mode: remindMode,
+    snooze: {
+      enabled: snoozeEnabled,
+      minutes: clampNumber(snoozeMinutes, 1, 180, DEFAULT_REMINDER.snooze.minutes),
+      repeat: clampNumber(snoozeRepeat, 1, 10, DEFAULT_REMINDER.snooze.repeat),
+    },
+  };
 
   const trend = getDosageTrend(dosage, newDosage);
   // The date input must not accept a day that has already passed
@@ -101,6 +138,7 @@ export function MedicationForm({ medication, open, onSave, onCancel }: Medicatio
       isActive,
       createdAt: medication?.createdAt ?? new Date().toISOString(),
       startDate: startDate || toDateKey(new Date()),
+      reminder: resolvedReminder,
       dosageChange: wantsChange
         ? {
             effectiveDate: changeDate,
@@ -149,6 +187,134 @@ export function MedicationForm({ medication, open, onSave, onCancel }: Medicatio
               placeholder="مثلاً 500mg"
               required
             />
+          </div>
+
+          {/* Reminder */}
+          <div className="rounded-lg border p-3 space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <div className="space-y-0.5">
+                <Label htmlFor="med-remind">یادآور</Label>
+                <p className="text-xs text-muted-foreground">
+                  در زمان مصرف به شما اطلاع داده شود.
+                </p>
+              </div>
+              <Switch
+                id="med-remind"
+                checked={remindEnabled}
+                onCheckedChange={setRemindEnabled}
+              />
+            </div>
+
+            {remindEnabled && (
+              <div className="space-y-3 pt-1">
+                <div className="space-y-2">
+                  <Label>حالت یادآوری</Label>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant={remindMode === 'notification' ? 'default' : 'outline'}
+                      onClick={() => setRemindMode('notification')}
+                      aria-pressed={remindMode === 'notification'}
+                      className="gap-1.5"
+                    >
+                      <Bell className="h-4 w-4" />
+                      نوتیفیکیشن
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant={remindMode === 'alarm' ? 'default' : 'outline'}
+                      onClick={() => setRemindMode('alarm')}
+                      aria-pressed={remindMode === 'alarm'}
+                      className="gap-1.5"
+                    >
+                      <AlarmClock className="h-4 w-4" />
+                      آلارم
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {remindMode === 'alarm'
+                      ? 'نوتیفیکیشن با صدای دستگاه، به‌همراه صدای هشدار برنامه در صورت باز بودن.'
+                      : 'نوتیفیکیشن بی‌صدا؛ فقط پیام نمایش داده می‌شود.'}
+                  </p>
+                </div>
+
+                {/* Snooze */}
+                <div className="rounded-md bg-muted/50 p-2.5 space-y-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="space-y-0.5">
+                      <Label htmlFor="med-snooze">یادآور مجدد</Label>
+                      <p className="text-xs text-muted-foreground">
+                        اگر دارو را ثبت نکردید، دوباره یادآوری شود.
+                      </p>
+                    </div>
+                    <Switch
+                      id="med-snooze"
+                      checked={snoozeEnabled}
+                      onCheckedChange={setSnoozeEnabled}
+                    />
+                  </div>
+
+                  {snoozeEnabled && (
+                    <div className="space-y-3">
+                      <div className="space-y-2">
+                        <Label htmlFor="med-snooze-minutes">
+                          چند دقیقه بعد؟
+                        </Label>
+                        <div className="flex flex-wrap items-center gap-2">
+                          {SNOOZE_MINUTE_PRESETS.map((preset) => (
+                            <Button
+                              key={preset}
+                              type="button"
+                              size="sm"
+                              variant={
+                                snoozeMinutes === String(preset)
+                                  ? 'default'
+                                  : 'outline'
+                              }
+                              onClick={() => setSnoozeMinutes(String(preset))}
+                            >
+                              {preset} دقیقه
+                            </Button>
+                          ))}
+                        </div>
+                        <Input
+                          id="med-snooze-minutes"
+                          type="number"
+                          inputMode="numeric"
+                          min={1}
+                          max={180}
+                          value={snoozeMinutes}
+                          onChange={(e) => setSnoozeMinutes(e.target.value)}
+                          placeholder="مثلاً ۱۰"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="med-snooze-repeat">
+                          چند بار تکرار شود؟
+                        </Label>
+                        <Input
+                          id="med-snooze-repeat"
+                          type="number"
+                          inputMode="numeric"
+                          min={1}
+                          max={10}
+                          value={snoozeRepeat}
+                          onChange={(e) => setSnoozeRepeat(e.target.value)}
+                          placeholder="مثلاً ۲"
+                        />
+                      </div>
+
+                      <p className="text-xs text-muted-foreground">
+                        {`${resolvedReminder.snooze.repeat} یادآور اضافه، هر ${resolvedReminder.snooze.minutes} دقیقه پس از زمان مصرف`}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Planned dosage change */}
