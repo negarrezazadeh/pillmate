@@ -53,16 +53,25 @@ export function getDoseState({
   return 'missed';
 }
 
-/** Negative once the scheduled time has passed. */
+/**
+ * Whole minutes until the scheduled time, negative once it has passed.
+ *
+ * Rounds away from zero: 8 seconds before is "1 minute left", not "0", and 8
+ * seconds after is "1 minute ago". Rounding to nearest showed "0 دقیقه دیگر"
+ * for the whole minute before the dose, which read as if it were already due.
+ */
 export function minutesUntil(scheduled: Date, now: Date = new Date()): number {
-  return Math.round((scheduled.getTime() - now.getTime()) / 60_000);
+  const diffMs = scheduled.getTime() - now.getTime();
+  return Math.sign(diffMs) * Math.ceil(Math.abs(diffMs) / 60_000);
 }
 
 export function windowMinutesLeft(
   scheduled: Date,
   now: Date = new Date(),
 ): number {
-  const left = Math.round(
+  // Ceil so any remaining seconds read as at least "1 minute left" while the
+  // dose is still due, rather than "0" a full minute before the window closes.
+  const left = Math.ceil(
     (scheduled.getTime() + DOSE_WINDOW_MS - now.getTime()) / 60_000,
   );
   return Math.max(0, left);
