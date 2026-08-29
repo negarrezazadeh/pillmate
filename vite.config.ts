@@ -12,7 +12,7 @@ const config = defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.svg'],
+      includeAssets: ['favicon.svg', 'apple-touch-icon.png'],
       manifest: {
         name: 'پیل‌میت - مدیریت دارو',
         short_name: 'Pillmate',
@@ -29,14 +29,18 @@ const config = defineConfig({
             src: '/pwa-192x192.png',
             sizes: '192x192',
             type: 'image/png',
+            purpose: 'any',
           },
           {
             src: '/pwa-512x512.png',
             sizes: '512x512',
             type: 'image/png',
+            purpose: 'any',
           },
           {
-            src: '/pwa-512x512.png',
+            // Separate artwork: a maskable icon needs its content inside the
+            // inner 80% circle, or the launcher crops into the logo
+            src: '/pwa-maskable-512x512.png',
             sizes: '512x512',
             type: 'image/png',
             purpose: 'maskable',
