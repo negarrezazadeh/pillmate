@@ -68,8 +68,15 @@ export function useDashboardStats() {
       isMedicationScheduledOn(m, today),
     );
 
+    // Restricted to today's medications, not all logs: a deleted medication's
+    // logs stay in storage for history, but they must stop counting toward
+    // today's total the moment the medication is gone, or remainingToday goes
+    // negative.
+    const todayMedIds = new Set(todayMedications.map((m) => m.id));
     const todayLogs = intakeLogs.filter(
-      (log) => log.scheduledTime.split('T')[0] === todayDateStr,
+      (log) =>
+        log.scheduledTime.split('T')[0] === todayDateStr &&
+        todayMedIds.has(log.medicationId),
     );
     const takenToday = todayLogs.filter((log) => log.status === 'taken').length;
 

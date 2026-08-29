@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, useState } from 'react';
 import { format } from 'date-fns-jalali';
 import { useMedicationContext } from '../medications/context';
 import {
@@ -25,8 +25,49 @@ import {
   sendNotification,
   playAlarmSound,
   getNotificationPermission,
+  requestNotificationPermission,
+  onPermissionChange,
   isMuted,
 } from './notification-service';
+
+type PermissionStatus = NotificationPermission | 'unsupported';
+
+/**
+ * Requests notification permission automatically once, on the first render
+ * after the app opens, instead of waiting for the user to tap the bell.
+ *
+ * Only fires the browser prompt while permission is still 'default': once the
+ * user has denied it, `Notification.requestPermission()` is a no-op that
+ * returns 'denied' immediately, so re-asking would do nothing. `request` is
+ * exposed for a manual retry button, which is the only way forward once the
+ * automatic attempt has been answered without granting.
+ */
+export function useNotificationPermission() {
+  const [status, setStatus] = useState<PermissionStatus>(() =>
+    getNotificationPermission(),
+  );
+
+  const request = useCallback(async () => {
+    const result = await requestNotificationPermission();
+    setStatus(result);
+    return result;
+  }, []);
+
+  useEffect(() => {
+    if (status === 'default') {
+      void request();
+    }
+    // Runs once per app open; `request` is stable and `status` is only read
+    // for its initial value here, not to re-trigger on every change.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Keeps every mounted instance (sidebar, mobile bell, banner) consistent when
+  // any one of them resolves the request.
+  useEffect(() => onPermissionChange(() => setStatus(getNotificationPermission())), []);
+
+  return { status, request };
+}
 
 /**
  * Fires each medication's reminders: the dose time, plus any snooze repeats.

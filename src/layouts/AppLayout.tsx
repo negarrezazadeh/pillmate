@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import { Separator } from "@/components/ui/separator";
 import { NotificationPermission } from "../features/notifications/components/NotificationPermission";
 import { NotificationBell } from "../features/notifications/components/NotificationBell";
+import { NotificationPermissionBanner } from "../features/notifications/components/NotificationPermissionBanner";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Logo } from "@/components/Logo";
 
@@ -66,7 +67,10 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         </header>
 
         {/* Page content */}
-        <main className="flex-1 overflow-y-auto p-4 md:p-6">{children}</main>
+        <main className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4">
+          <NotificationPermissionBanner />
+          {children}
+        </main>
 
         {/* Bottom navigation - mobile */}
         <nav className="md:hidden shrink-0 flex items-center justify-around bg-card border-t border-border py-2">

@@ -10,32 +10,26 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
-import {
-  getNotificationPermission,
-  isMuted,
-  requestNotificationPermission,
-  sendNotification,
-  setMuted,
-} from '../notification-service';
-
-type Status = NotificationPermission | 'unsupported';
+import { useNotificationPermission } from '../hooks';
+import { isMuted, sendNotification, setMuted } from '../notification-service';
 
 /**
  * Bell for the mobile header.
  *
- * When permission has not been granted yet, tapping requests it - this is the
- * only place to do so on mobile, since the sidebar with the same control is
- * desktop-only. Once granted, tapping opens the mute dialog instead of firing a
- * test notification on every tap.
+ * Permission itself is requested automatically on app open (see
+ * useNotificationPermission / NotificationPermissionBanner) rather than from
+ * here, so this shares that same status instead of tracking its own. Tapping
+ * while permission is still 'default' offers a manual retry for whoever
+ * dismissed the browser prompt; once granted, tapping opens the mute dialog
+ * instead of firing a test notification on every tap.
  */
 export function NotificationBell() {
-  const [status, setStatus] = useState<Status>('default');
+  const { status, request } = useNotificationPermission();
   const [muted, setMutedState] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
   useEffect(() => {
-    setStatus(getNotificationPermission());
     setMutedState(isMuted());
   }, []);
 
@@ -57,8 +51,7 @@ export function NotificationBell() {
     }
 
     if (status === 'default') {
-      const result = await requestNotificationPermission();
-      setStatus(result);
+      const result = await request();
       if (result === 'granted') {
         const shown = await sendNotification('یادآور فعال شد', {
           body: 'از این پس زمان مصرف داروها به شما اطلاع داده می‌شود.',
@@ -113,7 +106,7 @@ export function NotificationBell() {
               ? 'h-5 w-5 text-muted-foreground'
               : muted
                 ? 'h-5 w-5 text-muted-foreground'
-                : 'h-5 w-5 text-green-600'
+                : 'h-5 w-5 text-emerald-500'
           }
         />
       </Button>

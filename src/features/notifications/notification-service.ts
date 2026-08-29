@@ -1,5 +1,23 @@
 /**
- * Request notification permission from the user
+ * Fired whenever a permission request resolves, so every component showing
+ * permission status - the sidebar, the mobile bell, the banner - stays in sync
+ * even though each holds its own local copy of `Notification.permission`
+ * (there is no native change event for that API).
+ */
+const PERMISSION_CHANGE_EVENT = 'pillmate:notification-permission-changed';
+
+export function onPermissionChange(listener: () => void): () => void {
+  window.addEventListener(PERMISSION_CHANGE_EVENT, listener);
+  return () => window.removeEventListener(PERMISSION_CHANGE_EVENT, listener);
+}
+
+/**
+ * Request notification permission from the user.
+ *
+ * Guards against calling `requestPermission()` again once the user has
+ * answered: after a denial it is a no-op that resolves to 'denied' with no
+ * prompt, so there is no harm in the guard, but skipping the call also skips
+ * redundant native dialogs if several components request around the same time.
  */
 export async function requestNotificationPermission(): Promise<NotificationPermission> {
   if (!('Notification' in window)) {
@@ -7,15 +25,13 @@ export async function requestNotificationPermission(): Promise<NotificationPermi
     return 'denied';
   }
 
-  if (Notification.permission === 'granted') {
-    return 'granted';
+  if (Notification.permission !== 'default') {
+    return Notification.permission;
   }
 
-  if (Notification.permission === 'denied') {
-    return 'denied';
-  }
-
-  return await Notification.requestPermission();
+  const result = await Notification.requestPermission();
+  window.dispatchEvent(new Event(PERMISSION_CHANGE_EVENT));
+  return result;
 }
 
 /**

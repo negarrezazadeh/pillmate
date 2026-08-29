@@ -2,26 +2,16 @@ import { useState, useEffect } from 'react';
 import { Bell, BellOff, CheckCircle, Volume2, VolumeX } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import {
-  getNotificationPermission,
-  isMuted,
-  requestNotificationPermission,
-  setMuted,
-} from '../notification-service';
+import { useNotificationPermission } from '../hooks';
+import { isMuted, setMuted } from '../notification-service';
 
 export function NotificationPermission() {
-  const [permission, setPermission] = useState<NotificationPermission | 'unsupported'>('default');
+  const { status: permission, request } = useNotificationPermission();
   const [muted, setMutedState] = useState(false);
 
   useEffect(() => {
-    setPermission(getNotificationPermission());
     setMutedState(isMuted());
   }, []);
-
-  const handleRequest = async () => {
-    const result = await requestNotificationPermission();
-    setPermission(result);
-  };
 
   const toggleMute = () => {
     const next = !muted;
@@ -32,7 +22,7 @@ export function NotificationPermission() {
   if (permission === 'granted') {
     return (
       <div className="space-y-1.5">
-        <Badge variant="secondary" className="w-full justify-center gap-1.5 py-1.5 bg-green-50 text-green-700 dark:bg-green-900/50 dark:text-green-300">
+        <Badge variant="secondary" className="w-full justify-center gap-1.5 py-1.5 bg-emerald-50 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300">
           <CheckCircle className="h-3.5 w-3.5" />
           یادآور فعال است
         </Badge>
@@ -72,7 +62,7 @@ export function NotificationPermission() {
   }
 
   return (
-    <Button variant="outline" size="sm" onClick={handleRequest} className="w-full gap-1.5">
+    <Button variant="outline" size="sm" onClick={() => void request()} className="w-full gap-1.5">
       <Bell className="h-3.5 w-3.5" />
       فعال‌سازی یادآور
     </Button>
